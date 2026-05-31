@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import LoadingSpinner from '../components/LoadingSpinner'
 
+const API_BASE = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
 const COGNITO_DOMAIN = 'https://iqg-auth-867344470917.auth.us-east-1.amazoncognito.com'
 const CLIENT_ID = '56ilueodgm4jmccvb5l9bjj47l'
 const REDIRECT_URI = 'https://miniature-guide-q76vpx9xq5j3xwg7-5173.app.github.dev/callback'
@@ -53,7 +54,16 @@ export default function Callback() {
           // sub extraction is best-effort
         }
         login(idToken, sub)
-        navigate('/quote-form', { replace: true })
+        return fetch(`${API_BASE}/my-quotes`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        })
+          .then(res => res.ok ? res.json() : { count: 0 })
+          .then(data => {
+            navigate(data.count > 0 ? '/my-quotes' : '/quote-form', { replace: true })
+          })
+          .catch(() => {
+            navigate('/quote-form', { replace: true })
+          })
       })
       .catch(err => {
         setError(err.message || 'Authentication failed. Please try again.')

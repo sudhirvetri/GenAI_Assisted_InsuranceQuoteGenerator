@@ -5,6 +5,7 @@ import Callback from './pages/Callback'
 import QuoteForm from './pages/QuoteForm'
 import Results from './pages/Results'
 import Confirmed from './pages/Confirmed'
+import MyQuotes from './pages/MyQuotes'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/quote-form" element={<QuoteForm />} />
           <Route path="/results/:transactionId" element={<Results />} />
           <Route path="/confirmed" element={<Confirmed />} />
+          <Route path="/my-quotes" element={<MyQuotes />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

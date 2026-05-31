@@ -358,6 +358,17 @@ export class IqgCdkStack extends Stack {
       environment: commonEnv,
     });
 
+    const getMyQuotesFn = new lambda.Function(this, 'GetMyQuotesFn', {
+      functionName: 'iqg-get-my-quotes',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'get_my_quotes.handler',
+      code: lambda.Code.fromAsset('../lambda/get_my_quotes'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(15),
+      environment: commonEnv,
+    });
+
     // ------------------------------------------------------------------
     // 8. API GATEWAY (REST API)
     // ------------------------------------------------------------------
@@ -408,6 +419,12 @@ export class IqgCdkStack extends Stack {
 
     const selections = v1.addResource('selections');
     selections.addMethod('POST', new apigateway.LambdaIntegration(persistSelectionFn), {
+      authorizer: tokenAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
+
+    const myQuotes = v1.addResource('my-quotes');
+    myQuotes.addMethod('GET', new apigateway.LambdaIntegration(getMyQuotesFn), {
       authorizer: tokenAuthorizer,
       authorizationType: apigateway.AuthorizationType.CUSTOM,
     });
