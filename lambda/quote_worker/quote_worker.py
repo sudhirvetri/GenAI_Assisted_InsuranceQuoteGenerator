@@ -66,6 +66,47 @@ def rows_to_dicts(result):
     return rows
 
 
+def enrich_recommendations(recommendations, plans_map):
+    """Merge full plan DB fields into each Bedrock recommendation."""
+    enriched = []
+    for rec in recommendations:
+        plan_id = rec.get("plan_id", "")
+        full_plan = plans_map.get(plan_id, {})
+        merged = {
+            # Bedrock fields
+            "plan_id": plan_id,
+            "plan_name": rec.get("plan_name", full_plan.get("plan_name", "")),
+            "annual_premium": rec.get("annual_premium", full_plan.get("annual_premium_base", 0)),
+            "sum_insured": rec.get("sum_insured", full_plan.get("sum_insured", 0)),
+            "reason": rec.get("reason", ""),
+            "highlights": rec.get("highlights", []),
+            # Full plan fields from DB
+            "tier": full_plan.get("tier", ""),
+            "category": full_plan.get("category", ""),
+            "co_payment_pct": full_plan.get("co_payment_pct", rec.get("co_payment_pct", 0)),
+            "room_rent_limit": full_plan.get("room_rent_limit", ""),
+            "ped_waiting_months": full_plan.get("ped_waiting_months", rec.get("ped_waiting_months", 0)),
+            "initial_waiting_days": full_plan.get("initial_waiting_days", 30),
+            "no_claim_bonus_pct": full_plan.get("no_claim_bonus_pct", 0),
+            "max_ncb_pct": full_plan.get("max_ncb_pct", 0),
+            "restoration_benefit": full_plan.get("restoration_benefit", False),
+            "daycare_covered": full_plan.get("daycare_covered", False),
+            "ambulance_cover": full_plan.get("ambulance_cover", 0),
+            "ayush_covered": full_plan.get("ayush_covered", False),
+            "maternity_covered": full_plan.get("maternity_covered", False),
+            "annual_checkup": full_plan.get("annual_checkup", False),
+            "network_hospitals": full_plan.get("network_hospitals", 0),
+            "critical_illness_cover": full_plan.get("critical_illness_cover", False),
+            "teleconsult": full_plan.get("teleconsult", False),
+            "policy_tenure_options": full_plan.get("policy_tenure_options", "1/2/3"),
+            "renewability": full_plan.get("renewability", "Lifelong"),
+            "key_exclusions": full_plan.get("key_exclusions", ""),
+            "best_for": full_plan.get("best_for", ""),
+        }
+        enriched.append(merged)
+    return enriched
+
+
 def make_param(name, value):
     if value is None:
         return {"name": name, "value": {"isNull": True}}
@@ -339,7 +380,9 @@ def process_job(job):
             )
             return
 
-    # 8. Write COMPLETE result to DynamoDB
+    # 8. Enrich recommendations with full plan details, then write to DynamoDB
+    plans_map = {p["plan_id"]: p for p in plans}
+    enriched_recommendations = enrich_recommendations(recommendations, plans_map)
     try:
         results_table.put_item(
             Item=_to_dynamo_safe(
@@ -347,7 +390,7 @@ def process_job(job):
                     "transactionId": transaction_id,
                     "status": "COMPLETE",
                     "userId": user_id,
-                    "recommendations": recommendations,
+                    "recommendations": enriched_recommendations,
                     "modelId": BEDROCK_MODEL_ID,
                     "plansConsidered": len(plans),
                     "completedAt": _iso_now(),
@@ -371,7 +414,7 @@ def process_job(job):
         print("Failed to mark transaction COMPLETE in Aurora: %s" % exc)
 
     # 10. Privacy-safe audit to S3
-    write_audit(transaction_id, user_id, len(plans), len(recommendations))
+    write_audit(transaction_id, user_id, len(plans), len(enriched_recommendations))
 
 
 def handler(event, context):

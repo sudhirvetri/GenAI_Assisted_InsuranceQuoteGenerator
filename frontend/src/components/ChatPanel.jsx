@@ -3,6 +3,105 @@ import { useAuth } from '../context/AuthContext'
 
 const API_BASE = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
 
+function renderInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return parts.map((part, i) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
+  )
+}
+
+function renderTable(lines) {
+  const dataRows = lines.filter(l => !l.match(/^\|[\s:-]+\|/))
+  const parsed = dataRows.map(row =>
+    row.split('|').filter((_, i, a) => i > 0 && i < a.length - 1).map(c => c.trim())
+  )
+  if (!parsed.length) return null
+  const [header, ...body] = parsed
+  return (
+    <div className="overflow-x-auto mb-2">
+      <table className="text-xs border-collapse w-full">
+        <thead>
+          <tr>
+            {header.map((h, i) => (
+              <th key={i} className="border border-gray-300 bg-gray-100 px-2 py-1 text-left font-semibold">
+                {renderInline(h)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, ri) => (
+            <tr key={ri} className={ri % 2 === 0 ? '' : 'bg-gray-50'}>
+              {row.map((cell, ci) => (
+                <td key={ci} className="border border-gray-300 px-2 py-1">
+                  {renderInline(cell)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function renderMarkdown(text) {
+  const blocks = text.split(/\n\n+/)
+  return (
+    <>
+      {blocks.map((block, blockIdx) => {
+        const lines = block.split('\n')
+
+        if (lines[0]?.trim().startsWith('|')) {
+          return <div key={blockIdx}>{renderTable(lines)}</div>
+        }
+
+        if (lines.length > 0 && lines.every(l => /^[-*]\s/.test(l))) {
+          return (
+            <ul key={blockIdx} className="list-disc list-inside space-y-0.5 mb-2 text-sm">
+              {lines.map((line, i) => (
+                <li key={i}>{renderInline(line.replace(/^[-*]\s+/, ''))}</li>
+              ))}
+            </ul>
+          )
+        }
+
+        return (
+          <div key={blockIdx} className="mb-2">
+            {lines.map((line, lineIdx) => {
+              if (line.startsWith('### ')) {
+                return (
+                  <h4 key={lineIdx} className="font-semibold text-gray-800 mt-2 mb-1 text-sm">
+                    {renderInline(line.slice(4))}
+                  </h4>
+                )
+              }
+              if (line.startsWith('## ')) {
+                return (
+                  <h3 key={lineIdx} className="font-bold text-gray-900 mt-3 mb-1 text-sm">
+                    {renderInline(line.slice(3))}
+                  </h3>
+                )
+              }
+              if (/^[-*]\s/.test(line)) {
+                return (
+                  <ul key={lineIdx} className="list-disc list-inside text-sm">
+                    <li>{renderInline(line.replace(/^[-*]\s+/, ''))}</li>
+                  </ul>
+                )
+              }
+              if (!line.trim()) return null
+              return <p key={lineIdx} className="text-sm">{renderInline(line)}</p>
+            })}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
 export default function ChatPanel({ transactionId }) {
   const { token } = useAuth()
   const [messages, setMessages] = useState([])
@@ -71,15 +170,15 @@ export default function ChatPanel({ transactionId }) {
             key={i}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-teal-600 text-white rounded-br-sm'
-                  : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm'
-              }`}
-            >
-              {msg.content}
-            </div>
+            {msg.role === 'user' ? (
+              <div className="max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2 text-sm leading-relaxed bg-teal-600 text-white">
+                {msg.content}
+              </div>
+            ) : (
+              <div className="max-w-[90%] rounded-2xl rounded-bl-sm px-4 py-3 bg-white border border-gray-200 shadow-sm text-gray-800">
+                {renderMarkdown(msg.content)}
+              </div>
+            )}
           </div>
         ))}
         {loading && (
