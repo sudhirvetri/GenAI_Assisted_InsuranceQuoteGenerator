@@ -41,6 +41,14 @@ export default function Confirmed() {
       }),
     })
       .then(async res => {
+        if (res.status === 409) {
+          // Already selected — treat as success
+          const data = await res.json().catch(() => ({}))
+          setSelectedPlan(plan)
+          setError(null)
+          setSubmitting(false)
+          return
+        }
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
           throw new Error(data.message || `Failed (${res.status})`)

@@ -33,6 +33,7 @@ function BoolIcon({ value }) {
 
 export default function PlanCard({ plan, onSelect }) {
   const [expanded, setExpanded] = useState(false)
+  const [selecting, setSelecting] = useState(false)
   const tier = plan.tier ? plan.tier.charAt(0).toUpperCase() + plan.tier.slice(1) : 'Silver'
   const styles = TIER_STYLES[tier] || TIER_STYLES.Silver
   const highlights = plan.highlights || plan.key_highlights || []
@@ -219,7 +220,8 @@ export default function PlanCard({ plan, onSelect }) {
         {/* Select button */}
         <div className="mt-auto pt-2">
           <button
-            onClick={() => onSelect(plan)}
+            onClick={() => { if (!selecting) { setSelecting(true); onSelect(plan); } }}
+              disabled={selecting}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             Select This Plan
