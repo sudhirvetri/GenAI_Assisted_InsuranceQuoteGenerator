@@ -1,0 +1,327 @@
+Performing Policy Validations
+
+Validation Report
+-----------------
+
+╔═══════════════════════════════════╗
+║         Validation Report         ║
+║   Source: Construct Annotations   ║
+║   Version: N/A                    ║
+║   Status: success                 ║
+╚═══════════════════════════════════╝
+
+
+(Violations)
+
+[31m[1m@aws-cdk/aws-ec2:noSubnetRouteTableId (1 occurrences)[0m
+Severity: warning
+
+  Occurrences:
+
+    - Construct Path: IqgCdkStack/AuroraSubnet1b
+    - Template Path: cdk.out/IqgCdkStack.template.json
+    - Creation Stack:
+	└──  IqgCdkStack (IqgCdkStack)
+	     │ Construct: aws-cdk-lib.Stack
+	     │ Library Version: 2.257.0
+	     │ Location: <anonymous> (/workspaces/GenAI_Assisted_InsuranceQuoteGenerator/iqg-cdk/bin/iqg-cdk.ts:6:1)
+	     └──  AuroraSubnet1b (IqgCdkStack/AuroraSubnet1b)
+	          │ Construct: aws-cdk-lib.Resource
+	          │ Library Version: 2.257.0
+	          │ Location: Run with '--debug' to include location info
+    - Resource ID: N/A
+    - Template Locations:
+
+  Description: No routeTableId was provided to the subnet 'subnet-0e3ada429e10603e3'. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171) [ack: @aws-cdk/aws-ec2:noSubnetRouteTableId]
+
+[31m[1m@aws-cdk/aws-ec2:noSubnetRouteTableId (1 occurrences)[0m
+Severity: warning
+
+  Occurrences:
+
+    - Construct Path: IqgCdkStack/AuroraSubnet1c
+    - Template Path: cdk.out/IqgCdkStack.template.json
+    - Creation Stack:
+	└──  IqgCdkStack (IqgCdkStack)
+	     │ Construct: aws-cdk-lib.Stack
+	     │ Library Version: 2.257.0
+	     │ Location: <anonymous> (/workspaces/GenAI_Assisted_InsuranceQuoteGenerator/iqg-cdk/bin/iqg-cdk.ts:6:1)
+	     └──  AuroraSubnet1c (IqgCdkStack/AuroraSubnet1c)
+	          │ Construct: aws-cdk-lib.Resource
+	          │ Library Version: 2.257.0
+	          │ Location: Run with '--debug' to include location info
+    - Resource ID: N/A
+    - Template Locations:
+
+  Description: No routeTableId was provided to the subnet 'subnet-0a7b31cc011811219'. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171) [ack: @aws-cdk/aws-ec2:noSubnetRouteTableId]
+
+[31m[1m@aws-cdk/aws-ec2:noSubnetRouteTableId (1 occurrences)[0m
+Severity: warning
+
+  Occurrences:
+
+    - Construct Path: IqgCdkStack/AuroraSubnet1a
+    - Template Path: cdk.out/IqgCdkStack.template.json
+    - Creation Stack:
+	└──  IqgCdkStack (IqgCdkStack)
+	     │ Construct: aws-cdk-lib.Stack
+	     │ Library Version: 2.257.0
+	     │ Location: <anonymous> (/workspaces/GenAI_Assisted_InsuranceQuoteGenerator/iqg-cdk/bin/iqg-cdk.ts:6:1)
+	     └──  AuroraSubnet1a (IqgCdkStack/AuroraSubnet1a)
+	          │ Construct: aws-cdk-lib.Resource
+	          │ Library Version: 2.257.0
+	          │ Location: Run with '--debug' to include location info
+    - Resource ID: N/A
+    - Template Locations:
+
+  Description: No routeTableId was provided to the subnet 'subnet-0113efea3112b7b32'. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171) [ack: @aws-cdk/aws-ec2:noSubnetRouteTableId]
+
+Policy Validation Report Summary
+
+╔═══════════════════════╤═════════╗
+║ Source                │ Status  ║
+╟───────────────────────┼─────────╢
+║ Construct Annotations │ success ║
+╚═══════════════════════╧═════════╝
+
+[Warning at /IqgCdkStack/AuroraSubnet1b] No routeTableId was provided to the subnet 'subnet-0e3ada429e10603e3'. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171) [ack: @aws-cdk/aws-ec2:noSubnetRouteTableId]
+[Warning at /IqgCdkStack/AuroraSubnet1c] No routeTableId was provided to the subnet 'subnet-0a7b31cc011811219'. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171) [ack: @aws-cdk/aws-ec2:noSubnetRouteTableId]
+[Warning at /IqgCdkStack/AuroraSubnet1a] No routeTableId was provided to the subnet 'subnet-0113efea3112b7b32'. Attempting to read its .routeTable.routeTableId will return null/undefined. (More info: https://github.com/aws/aws-cdk/pull/3171) [ack: @aws-cdk/aws-ec2:noSubnetRouteTableId]
+
+✨  Synthesis time: 11.04s
+
+IqgCdkStack: creating CloudFormation changeset...
+Changeset arn:aws:cloudformation:us-east-1:867344470917:changeSet/cdk-deploy-change-set/07fd7f42-707f-418b-a0d7-fc287cb3ca1d created and waiting in review for manual execution (--no-execute)
+IqgCdkStack: deploying... [1/1]
+IqgCdkStack |  0/68 | 6:49:30 AM | CREATE_IN_PROGRESS   | AWS::CloudFormation::Stack                  | IqgCdkStack User Initiated
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | QuoteJobsDlq (QuoteJobsDlq0B840A4F) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::RDS::DBSubnetGroup                     | AuroraCluster/Subnets/Default (AuroraClusterSubnetsF3E9E6AD) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::SecretsManager::Secret                 | AuroraSecret (AuroraSecret41E6E877) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | QuoteResultsTable (QuoteResultsTable4FC428C6) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::S3::Bucket                             | AuditBucket (AuditBucketB01E0AE8) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::RestApi                    | IqgApi (IqgApi088CD142) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::EC2::SecurityGroup                     | AuroraSecurityGroup (AuroraSecurityGroup75F699F6) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPool                      | IqgUserPool (IqgUserPool2D9F4776) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | ChatHistoryTable (ChatHistoryTableA22BA13C) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | IqgLambdaRole (IqgLambdaRole321A3ED4) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | IdempotencyKeysTable (IdempotencyKeysTable1BD41BDB) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | WsConnectionsTable (WsConnectionsTable9E1AC3EB) 
+IqgCdkStack |  0/68 | 6:49:34 AM | CREATE_IN_PROGRESS   | AWS::CDK::Metadata                          | CDKMetadata/Default (CDKMetadata) 
+IqgCdkStack |  0/68 | 6:49:35 AM | CREATE_IN_PROGRESS   | AWS::RDS::DBSubnetGroup                     | AuroraCluster/Subnets/Default (AuroraClusterSubnetsF3E9E6AD) Resource creation Initiated
+IqgCdkStack |  0/68 | 6:49:35 AM | CREATE_IN_PROGRESS   | AWS::IAM::Role                              | IqgLambdaRole (IqgLambdaRole321A3ED4) Resource creation Initiated
+IqgCdkStack |  0/68 | 6:49:35 AM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | QuoteJobsDlq (QuoteJobsDlq0B840A4F) Resource creation Initiated
+IqgCdkStack |  0/68 | 6:49:35 AM | CREATE_IN_PROGRESS   | AWS::CDK::Metadata                          | CDKMetadata/Default (CDKMetadata) Resource creation Initiated
+IqgCdkStack |  0/68 | 6:49:35 AM | CREATE_IN_PROGRESS   | AWS::SecretsManager::Secret                 | AuroraSecret (AuroraSecret41E6E877) Resource creation Initiated
+IqgCdkStack |  1/68 | 6:49:35 AM | CREATE_COMPLETE      | AWS::CDK::Metadata                          | CDKMetadata/Default (CDKMetadata) 
+IqgCdkStack |  1/68 | 6:49:36 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | WsConnectionsTable (WsConnectionsTable9E1AC3EB) Resource creation Initiated
+IqgCdkStack |  1/68 | 6:49:36 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | QuoteResultsTable (QuoteResultsTable4FC428C6) Resource creation Initiated
+IqgCdkStack |  1/68 | 6:49:36 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | ChatHistoryTable (ChatHistoryTableA22BA13C) Resource creation Initiated
+IqgCdkStack |  1/68 | 6:49:36 AM | CREATE_IN_PROGRESS   | AWS::S3::Bucket                             | AuditBucket (AuditBucketB01E0AE8) Resource creation Initiated
+IqgCdkStack |  1/68 | 6:49:36 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::RestApi                    | IqgApi (IqgApi088CD142) Resource creation Initiated
+IqgCdkStack |  1/68 | 6:49:36 AM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | QuoteJobsDlq (QuoteJobsDlq0B840A4F) Eventual consistency check initiated
+IqgCdkStack |  2/68 | 6:49:36 AM | CREATE_COMPLETE      | AWS::SecretsManager::Secret                 | AuroraSecret (AuroraSecret41E6E877) 
+IqgCdkStack |  3/68 | 6:49:36 AM | CREATE_COMPLETE      | AWS::ApiGateway::RestApi                    | IqgApi (IqgApi088CD142) 
+IqgCdkStack |  3/68 | 6:49:37 AM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | QuoteJobsQueue (QuoteJobsQueueC2FC8912) 
+IqgCdkStack |  3/68 | 6:49:37 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPool                      | IqgUserPool (IqgUserPool2D9F4776) Resource creation Initiated
+IqgCdkStack |  3/68 | 6:49:37 AM | CREATE_IN_PROGRESS   | AWS::EC2::SecurityGroup                     | AuroraSecurityGroup (AuroraSecurityGroup75F699F6) Resource creation Initiated
+IqgCdkStack |  3/68 | 6:49:37 AM | CREATE_IN_PROGRESS   | AWS::DynamoDB::Table                        | IdempotencyKeysTable (IdempotencyKeysTable1BD41BDB) Resource creation Initiated
+IqgCdkStack |  3/68 | 6:49:37 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1 (IqgApiv100CCAC9D) 
+IqgCdkStack |  3/68 | 6:49:37 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/OPTIONS (IqgApiOPTIONS56364309) 
+IqgCdkStack |  3/68 | 6:49:37 AM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | QuoteJobsQueue (QuoteJobsQueueC2FC8912) Resource creation Initiated
+IqgCdkStack |  4/68 | 6:49:38 AM | CREATE_COMPLETE      | AWS::Cognito::UserPool                      | IqgUserPool (IqgUserPool2D9F4776) 
+IqgCdkStack |  4/68 | 6:49:38 AM | CREATE_IN_PROGRESS   | AWS::SQS::Queue                             | QuoteJobsQueue (QuoteJobsQueueC2FC8912) Eventual consistency check initiated
+IqgCdkStack |  4/68 | 6:49:38 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1 (IqgApiv100CCAC9D) Resource creation Initiated
+IqgCdkStack |  5/68 | 6:49:38 AM | CREATE_COMPLETE      | AWS::RDS::DBSubnetGroup                     | AuroraCluster/Subnets/Default (AuroraClusterSubnetsF3E9E6AD) 
+IqgCdkStack |  5/68 | 6:49:38 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolDomain                | IqgUserPoolDomain (IqgUserPoolDomain6DE58C07) 
+IqgCdkStack |  5/68 | 6:49:38 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolClient                | IqgUserPoolClient (IqgUserPoolClientEDDA7731) 
+IqgCdkStack |  5/68 | 6:49:38 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/OPTIONS (IqgApiOPTIONS56364309) Resource creation Initiated
+IqgCdkStack |  6/68 | 6:49:39 AM | CREATE_COMPLETE      | AWS::ApiGateway::Resource                   | IqgApi/Default/v1 (IqgApiv100CCAC9D) 
+IqgCdkStack |  6/68 | 6:49:39 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolDomain                | IqgUserPoolDomain (IqgUserPoolDomain6DE58C07) Resource creation Initiated
+IqgCdkStack |  6/68 | 6:49:39 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolClient                | IqgUserPoolClient (IqgUserPoolClientEDDA7731) Resource creation Initiated
+IqgCdkStack |  6/68 | 6:49:39 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/chat (IqgApiv1chatD2E01ECD) 
+IqgCdkStack |  6/68 | 6:49:39 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes (IqgApiv1quotesCF12B7CD) 
+IqgCdkStack |  6/68 | 6:49:39 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/healthz (IqgApiv1healthz2B54BD1B) 
+IqgCdkStack |  6/68 | 6:49:40 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/OPTIONS (IqgApiv1OPTIONSBCEDFD86) 
+IqgCdkStack |  6/68 | 6:49:40 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/selections (IqgApiv1selectionsF170F1FB) 
+IqgCdkStack |  7/68 | 6:49:40 AM | CREATE_COMPLETE      | AWS::Cognito::UserPoolClient                | IqgUserPoolClient (IqgUserPoolClientEDDA7731) 
+IqgCdkStack |  7/68 | 6:49:40 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/chat (IqgApiv1chatD2E01ECD) Resource creation Initiated
+IqgCdkStack |  7/68 | 6:49:40 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/OPTIONS (IqgApiv1OPTIONSBCEDFD86) Resource creation Initiated
+IqgCdkStack |  7/68 | 6:49:40 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/selections (IqgApiv1selectionsF170F1FB) Resource creation Initiated
+IqgCdkStack |  7/68 | 6:49:40 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes (IqgApiv1quotesCF12B7CD) Resource creation Initiated
+IqgCdkStack |  7/68 | 6:49:40 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/healthz (IqgApiv1healthz2B54BD1B) Resource creation Initiated
+IqgCdkStack |  8/68 | 6:49:41 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/OPTIONS (IqgApiOPTIONS56364309) 
+IqgCdkStack |  9/68 | 6:49:41 AM | CREATE_COMPLETE      | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/selections (IqgApiv1selectionsF170F1FB) 
+IqgCdkStack | 10/68 | 6:49:41 AM | CREATE_COMPLETE      | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/chat (IqgApiv1chatD2E01ECD) 
+IqgCdkStack | 11/68 | 6:49:41 AM | CREATE_COMPLETE      | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes (IqgApiv1quotesCF12B7CD) 
+IqgCdkStack | 12/68 | 6:49:41 AM | CREATE_COMPLETE      | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/healthz (IqgApiv1healthz2B54BD1B) 
+IqgCdkStack | 12/68 | 6:49:41 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/chat/OPTIONS (IqgApiv1chatOPTIONSA58DE0C7) 
+IqgCdkStack | 12/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/selections/OPTIONS (IqgApiv1selectionsOPTIONS28CBE352) 
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_COMPLETE      | AWS::Cognito::UserPoolDomain                | IqgUserPoolDomain (IqgUserPoolDomain6DE58C07) 
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes/{transactionId} (IqgApiv1quotestransactionId0CCB1025) 
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/OPTIONS (IqgApiv1quotesOPTIONS7918D13D) 
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes/submit (IqgApiv1quotessubmit685DFCDF) 
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/healthz/OPTIONS (IqgApiv1healthzOPTIONSAFC7BE78) 
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/selections/OPTIONS (IqgApiv1selectionsOPTIONS28CBE352) Resource creation Initiated
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/OPTIONS (IqgApiv1quotesOPTIONS7918D13D) Resource creation Initiated
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes/{transactionId} (IqgApiv1quotestransactionId0CCB1025) Resource creation Initiated
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes/submit (IqgApiv1quotessubmit685DFCDF) Resource creation Initiated
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/healthz/OPTIONS (IqgApiv1healthzOPTIONSAFC7BE78) Resource creation Initiated
+IqgCdkStack | 13/68 | 6:49:42 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/chat/OPTIONS (IqgApiv1chatOPTIONSA58DE0C7) Resource creation Initiated
+IqgCdkStack | 14/68 | 6:49:43 AM | CREATE_COMPLETE      | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes/submit (IqgApiv1quotessubmit685DFCDF) 
+IqgCdkStack | 15/68 | 6:49:43 AM | CREATE_COMPLETE      | AWS::ApiGateway::Resource                   | IqgApi/Default/v1/quotes/{transactionId} (IqgApiv1quotestransactionId0CCB1025) 
+IqgCdkStack | 15/68 | 6:49:44 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/submit/OPTIONS (IqgApiv1quotessubmitOPTIONS23AC615F) 
+IqgCdkStack | 15/68 | 6:49:44 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/{transactionId}/OPTIONS (IqgApiv1quotestransactionIdOPTIONS4EE28B19) 
+IqgCdkStack | 16/68 | 6:49:44 AM | CREATE_COMPLETE      | AWS::EC2::SecurityGroup                     | AuroraSecurityGroup (AuroraSecurityGroup75F699F6) 
+IqgCdkStack | 17/68 | 6:49:44 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/selections/OPTIONS (IqgApiv1selectionsOPTIONS28CBE352) 
+IqgCdkStack | 17/68 | 6:49:44 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/submit/OPTIONS (IqgApiv1quotessubmitOPTIONS23AC615F) Resource creation Initiated
+IqgCdkStack | 18/68 | 6:49:44 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/healthz/OPTIONS (IqgApiv1healthzOPTIONSAFC7BE78) 
+IqgCdkStack | 19/68 | 6:49:44 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/OPTIONS (IqgApiv1quotesOPTIONS7918D13D) 
+IqgCdkStack | 19/68 | 6:49:44 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/{transactionId}/OPTIONS (IqgApiv1quotestransactionIdOPTIONS4EE28B19) Resource creation Initiated
+IqgCdkStack | 20/68 | 6:49:45 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/chat/OPTIONS (IqgApiv1chatOPTIONSA58DE0C7) 
+IqgCdkStack | 20/68 | 6:49:45 AM | CREATE_IN_PROGRESS   | AWS::RDS::DBCluster                         | AuroraCluster (AuroraCluster23D869C0) 
+IqgCdkStack | 21/68 | 6:49:46 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/submit/OPTIONS (IqgApiv1quotessubmitOPTIONS23AC615F) 
+IqgCdkStack | 22/68 | 6:49:47 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/{transactionId}/OPTIONS (IqgApiv1quotestransactionIdOPTIONS4EE28B19) 
+IqgCdkStack | 22/68 | 6:49:47 AM | CREATE_IN_PROGRESS   | AWS::RDS::DBCluster                         | AuroraCluster (AuroraCluster23D869C0) Resource creation Initiated
+IqgCdkStack | 23/68 | 6:49:49 AM | CREATE_COMPLETE      | AWS::DynamoDB::Table                        | WsConnectionsTable (WsConnectionsTable9E1AC3EB) 
+IqgCdkStack | 24/68 | 6:49:49 AM | CREATE_COMPLETE      | AWS::DynamoDB::Table                        | QuoteResultsTable (QuoteResultsTable4FC428C6) 
+IqgCdkStack | 25/68 | 6:49:49 AM | CREATE_COMPLETE      | AWS::DynamoDB::Table                        | ChatHistoryTable (ChatHistoryTableA22BA13C) 
+IqgCdkStack | 26/68 | 6:49:50 AM | CREATE_COMPLETE      | AWS::S3::Bucket                             | AuditBucket (AuditBucketB01E0AE8) 
+IqgCdkStack | 27/68 | 6:49:50 AM | CREATE_COMPLETE      | AWS::DynamoDB::Table                        | IdempotencyKeysTable (IdempotencyKeysTable1BD41BDB) 
+IqgCdkStack | 28/68 | 6:49:53 AM | CREATE_COMPLETE      | AWS::IAM::Role                              | IqgLambdaRole (IqgLambdaRole321A3ED4) 
+IqgCdkStack | 29/68 | 6:50:22 AM | CREATE_COMPLETE      | AWS::RDS::DBCluster                         | AuroraCluster (AuroraCluster23D869C0) 
+IqgCdkStack | 29/68 | 6:50:22 AM | CREATE_IN_PROGRESS   | AWS::RDS::DBInstance                        | AuroraCluster/writer (AuroraClusterwriter499C523E) 
+IqgCdkStack | 29/68 | 6:50:22 AM | CREATE_IN_PROGRESS   | AWS::SecretsManager::SecretTargetAttachment | AuroraSecret/Attachment (AuroraSecretAttachment65089D67) 
+IqgCdkStack | 29/68 | 6:50:23 AM | CREATE_IN_PROGRESS   | AWS::SecretsManager::SecretTargetAttachment | AuroraSecret/Attachment (AuroraSecretAttachment65089D67) Resource creation Initiated
+IqgCdkStack | 29/68 | 6:50:23 AM | CREATE_IN_PROGRESS   | AWS::RDS::DBInstance                        | AuroraCluster/writer (AuroraClusterwriter499C523E) Resource creation Initiated
+IqgCdkStack | 30/68 | 6:50:24 AM | CREATE_COMPLETE      | AWS::SecretsManager::SecretTargetAttachment | AuroraSecret/Attachment (AuroraSecretAttachment65089D67) 
+IqgCdkStack | 30/68 | 6:50:25 AM | CREATE_IN_PROGRESS   | AWS::IAM::Policy                            | IqgLambdaRole/DefaultPolicy (IqgLambdaRoleDefaultPolicy8C1E4AFB) 
+IqgCdkStack | 30/68 | 6:50:26 AM | CREATE_IN_PROGRESS   | AWS::IAM::Policy                            | IqgLambdaRole/DefaultPolicy (IqgLambdaRoleDefaultPolicy8C1E4AFB) Resource creation Initiated
+IqgCdkStack | 31/68 | 6:50:37 AM | CREATE_COMPLETE      | AWS::SQS::Queue                             | QuoteJobsDlq (QuoteJobsDlq0B840A4F) 
+IqgCdkStack | 32/68 | 6:50:39 AM | CREATE_COMPLETE      | AWS::SQS::Queue                             | QuoteJobsQueue (QuoteJobsQueueC2FC8912) 
+IqgCdkStack | 33/68 | 6:50:42 AM | CREATE_COMPLETE      | AWS::IAM::Policy                            | IqgLambdaRole/DefaultPolicy (IqgLambdaRoleDefaultPolicy8C1E4AFB) 
+IqgCdkStack | 33/68 | 6:50:43 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | ChatConversationFn (ChatConversationFnECFD170C) 
+IqgCdkStack | 33/68 | 6:50:43 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | IngestionApiFn (IngestionApiFn36FF3A52) 
+IqgCdkStack | 33/68 | 6:50:43 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | PersistSelectionFn (PersistSelectionFn797B42FB) 
+IqgCdkStack | 33/68 | 6:50:43 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | QuoteWorkerFn (QuoteWorkerFn93DF9E90) 
+IqgCdkStack | 33/68 | 6:50:43 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | GetQuoteFn (GetQuoteFn5670902A) 
+IqgCdkStack | 33/68 | 6:50:43 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | AuthorizerFn (AuthorizerFn97B9AA7C) 
+IqgCdkStack | 33/68 | 6:50:44 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | GetQuoteFn (GetQuoteFn5670902A) Resource creation Initiated
+IqgCdkStack | 33/68 | 6:50:44 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | IngestionApiFn (IngestionApiFn36FF3A52) Resource creation Initiated
+IqgCdkStack | 33/68 | 6:50:44 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | QuoteWorkerFn (QuoteWorkerFn93DF9E90) Resource creation Initiated
+IqgCdkStack | 33/68 | 6:50:44 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | AuthorizerFn (AuthorizerFn97B9AA7C) Resource creation Initiated
+IqgCdkStack | 33/68 | 6:50:44 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | PersistSelectionFn (PersistSelectionFn797B42FB) Resource creation Initiated
+IqgCdkStack | 33/68 | 6:50:45 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Function                       | ChatConversationFn (ChatConversationFnECFD170C) Resource creation Initiated
+IqgCdkStack | 34/68 | 6:50:52 AM | CREATE_COMPLETE      | AWS::Lambda::Function                       | GetQuoteFn (GetQuoteFn5670902A) 
+IqgCdkStack | 35/68 | 6:50:52 AM | CREATE_COMPLETE      | AWS::Lambda::Function                       | AuthorizerFn (AuthorizerFn97B9AA7C) 
+IqgCdkStack | 36/68 | 6:50:52 AM | CREATE_COMPLETE      | AWS::Lambda::Function                       | QuoteWorkerFn (QuoteWorkerFn93DF9E90) 
+IqgCdkStack | 37/68 | 6:50:52 AM | CREATE_COMPLETE      | AWS::Lambda::Function                       | PersistSelectionFn (PersistSelectionFn797B42FB) 
+IqgCdkStack | 38/68 | 6:50:52 AM | CREATE_COMPLETE      | AWS::Lambda::Function                       | IngestionApiFn (IngestionApiFn36FF3A52) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | GetQuoteFn/LogGroup (GetQuoteFnLogGroup0962696A) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | QuoteWorkerFn/LogGroup (QuoteWorkerFnLogGroup8EFD2B43) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | AuthorizerFn/LogGroup (AuthorizerFnLogGroupA5DB7646) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Lambda::EventSourceMapping             | QuoteWorkerFn/SqsEventSource:IqgCdkStackQuoteJobsQueueEF61EEA1 (QuoteWorkerFnSqsEventSourceIqgCdkStackQuoteJobsQueueEF61EEA1226F3D92) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/{transactionId}/GET/ApiPermission.Test.IqgCdkStackIqgApi087CD000.GET..v1.quotes.{transactionId} (IqgApiv1quotestransactionIdGETApiPermissionTestIqgCdkStackIqgApi087CD000GETv1quotestransactionIdA0B1A3CC) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | PersistSelectionFn/LogGroup (PersistSelectionFnLogGroup33A95219) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/healthz/GET (IqgApiv1healthzGET21C2A247) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Authorizer                 | IqgTokenAuthorizer (IqgTokenAuthorizer38E08A54) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/healthz/GET/ApiPermission.Test.IqgCdkStackIqgApi087CD000.GET..v1.healthz (IqgApiv1healthzGETApiPermissionTestIqgCdkStackIqgApi087CD000GETv1healthz2528C969) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/selections/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.selections (IqgApiv1selectionsPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1selectionsF2B291E3) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | IngestionApiFn/LogGroup (IngestionApiFnLogGroupD41E8121) 
+IqgCdkStack | 38/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/submit/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.quotes.submit (IqgApiv1quotessubmitPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1quotessubmit73F074B0) 
+IqgCdkStack | 39/68 | 6:50:53 AM | CREATE_COMPLETE      | AWS::Lambda::Function                       | ChatConversationFn (ChatConversationFnECFD170C) 
+IqgCdkStack | 39/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | GetQuoteFn/LogGroup (GetQuoteFnLogGroup0962696A) Resource creation Initiated
+IqgCdkStack | 39/68 | 6:50:53 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/healthz/GET (IqgApiv1healthzGET21C2A247) Resource creation Initiated
+IqgCdkStack | 39/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Authorizer                 | IqgTokenAuthorizer (IqgTokenAuthorizer38E08A54) Resource creation Initiated
+IqgCdkStack | 39/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/healthz/GET/ApiPermission.Test.IqgCdkStackIqgApi087CD000.GET..v1.healthz (IqgApiv1healthzGETApiPermissionTestIqgCdkStackIqgApi087CD000GETv1healthz2528C969) Resource creation Initiated
+IqgCdkStack | 39/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | PersistSelectionFn/LogGroup (PersistSelectionFnLogGroup33A95219) Resource creation Initiated
+IqgCdkStack | 39/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/submit/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.quotes.submit (IqgApiv1quotessubmitPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1quotessubmit73F074B0) Resource creation Initiated
+IqgCdkStack | 39/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | IngestionApiFn/LogGroup (IngestionApiFnLogGroupD41E8121) Resource creation Initiated
+IqgCdkStack | 39/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | ChatConversationFn/LogGroup (ChatConversationFnLogGroup21B385F2) 
+IqgCdkStack | 39/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/chat/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.chat (IqgApiv1chatPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1chat876CA13E) 
+IqgCdkStack | 40/68 | 6:50:54 AM | CREATE_COMPLETE      | AWS::ApiGateway::Authorizer                 | IqgTokenAuthorizer (IqgTokenAuthorizer38E08A54) 
+IqgCdkStack | 40/68 | 6:50:54 AM | CREATE_IN_PROGRESS   | AWS::Lambda::EventSourceMapping             | QuoteWorkerFn/SqsEventSource:IqgCdkStackQuoteJobsQueueEF61EEA1 (QuoteWorkerFnSqsEventSourceIqgCdkStackQuoteJobsQueueEF61EEA1226F3D92) Resource creation Initiated
+IqgCdkStack | 41/68 | 6:50:54 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/healthz/GET/ApiPermission.Test.IqgCdkStackIqgApi087CD000.GET..v1.healthz (IqgApiv1healthzGETApiPermissionTestIqgCdkStackIqgApi087CD000GETv1healthz2528C969) 
+IqgCdkStack | 42/68 | 6:50:54 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/submit/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.quotes.submit (IqgApiv1quotessubmitPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1quotessubmit73F074B0) 
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | QuoteWorkerFn/LogGroup (QuoteWorkerFnLogGroup8EFD2B43) Resource creation Initiated
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/submit/POST (IqgApiv1quotessubmitPOSTB6CF1E4B) 
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | ChatConversationFn/LogGroup (ChatConversationFnLogGroup21B385F2) Resource creation Initiated
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/chat/POST (IqgApiv1chatPOST098799F6) 
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/selections/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.selections (IqgApiv1selectionsPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1selectionsF2B291E3) Resource creation Initiated
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/selections/POST (IqgApiv1selectionsPOST30B3B384) 
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | AuthorizerFn/IqgCdkStackIqgTokenAuthorizerAAC4905D:Permissions (AuthorizerFnIqgCdkStackIqgTokenAuthorizerAAC4905DPermissions02FD2A48) 
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | AuthorizerFn/LogGroup (AuthorizerFnLogGroupA5DB7646) Resource creation Initiated
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/{transactionId}/GET (IqgApiv1quotestransactionIdGET5AD9EAB0) 
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/{transactionId}/GET/ApiPermission.Test.IqgCdkStackIqgApi087CD000.GET..v1.quotes.{transactionId} (IqgApiv1quotestransactionIdGETApiPermissionTestIqgCdkStackIqgApi087CD000GETv1quotestransactionIdA0B1A3CC) Resource creation Initiated
+IqgCdkStack | 42/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/chat/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.chat (IqgApiv1chatPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1chat876CA13E) Resource creation Initiated
+IqgCdkStack | 43/68 | 6:50:55 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/selections/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.selections (IqgApiv1selectionsPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1selectionsF2B291E3) 
+IqgCdkStack | 44/68 | 6:50:55 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/healthz/GET (IqgApiv1healthzGET21C2A247) 
+IqgCdkStack | 44/68 | 6:50:55 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/selections/POST (IqgApiv1selectionsPOST30B3B384) Resource creation Initiated
+IqgCdkStack | 44/68 | 6:50:56 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/chat/POST (IqgApiv1chatPOST098799F6) Resource creation Initiated
+IqgCdkStack | 44/68 | 6:50:56 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/{transactionId}/GET (IqgApiv1quotestransactionIdGET5AD9EAB0) Resource creation Initiated
+IqgCdkStack | 44/68 | 6:50:56 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | AuthorizerFn/IqgCdkStackIqgTokenAuthorizerAAC4905D:Permissions (AuthorizerFnIqgCdkStackIqgTokenAuthorizerAAC4905DPermissions02FD2A48) Resource creation Initiated
+IqgCdkStack | 45/68 | 6:50:56 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/{transactionId}/GET/ApiPermission.Test.IqgCdkStackIqgApi087CD000.GET..v1.quotes.{transactionId} (IqgApiv1quotestransactionIdGETApiPermissionTestIqgCdkStackIqgApi087CD000GETv1quotestransactionIdA0B1A3CC) 
+IqgCdkStack | 45/68 | 6:50:56 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/submit/POST (IqgApiv1quotessubmitPOSTB6CF1E4B) Resource creation Initiated
+IqgCdkStack | 46/68 | 6:50:56 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/chat/POST/ApiPermission.Test.IqgCdkStackIqgApi087CD000.POST..v1.chat (IqgApiv1chatPOSTApiPermissionTestIqgCdkStackIqgApi087CD000POSTv1chat876CA13E) 
+IqgCdkStack | 47/68 | 6:50:56 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | AuthorizerFn/IqgCdkStackIqgTokenAuthorizerAAC4905D:Permissions (AuthorizerFnIqgCdkStackIqgTokenAuthorizerAAC4905DPermissions02FD2A48) 
+IqgCdkStack | 48/68 | 6:50:57 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/selections/POST (IqgApiv1selectionsPOST30B3B384) 
+IqgCdkStack | 49/68 | 6:50:57 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/chat/POST (IqgApiv1chatPOST098799F6) 
+IqgCdkStack | 50/68 | 6:50:58 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/submit/POST (IqgApiv1quotessubmitPOSTB6CF1E4B) 
+IqgCdkStack | 51/68 | 6:50:58 AM | CREATE_COMPLETE      | AWS::ApiGateway::Method                     | IqgApi/Default/v1/quotes/{transactionId}/GET (IqgApiv1quotestransactionIdGET5AD9EAB0) 
+IqgCdkStack | 51/68 | 6:50:58 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Deployment                 | IqgApi/Deployment (IqgApiDeployment1CF57712da250b0184092197bf27855d675e2026) 
+IqgCdkStack | 51/68 | 6:50:59 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Deployment                 | IqgApi/Deployment (IqgApiDeployment1CF57712da250b0184092197bf27855d675e2026) Resource creation Initiated
+IqgCdkStack | 52/68 | 6:51:00 AM | CREATE_COMPLETE      | AWS::ApiGateway::Deployment                 | IqgApi/Deployment (IqgApiDeployment1CF57712da250b0184092197bf27855d675e2026) 
+IqgCdkStack | 52/68 | 6:51:01 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Stage                      | IqgApi/DeploymentStage.v1 (IqgApiDeploymentStagev1D8463DA1) 
+IqgCdkStack | 52/68 | 6:51:02 AM | CREATE_IN_PROGRESS   | AWS::ApiGateway::Stage                      | IqgApi/DeploymentStage.v1 (IqgApiDeploymentStagev1D8463DA1) Resource creation Initiated
+IqgCdkStack | 52/68 | 6:51:02 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | GetQuoteFn/LogGroup (GetQuoteFnLogGroup0962696A) Eventual consistency check initiated
+IqgCdkStack | 52/68 | 6:51:03 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | PersistSelectionFn/LogGroup (PersistSelectionFnLogGroup33A95219) Eventual consistency check initiated
+IqgCdkStack | 52/68 | 6:51:03 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | IngestionApiFn/LogGroup (IngestionApiFnLogGroupD41E8121) Eventual consistency check initiated
+IqgCdkStack | 53/68 | 6:51:03 AM | CREATE_COMPLETE      | AWS::Logs::LogGroup                         | GetQuoteFn/LogGroup (GetQuoteFnLogGroup0962696A) 
+IqgCdkStack | 54/68 | 6:51:03 AM | CREATE_COMPLETE      | AWS::Logs::LogGroup                         | IngestionApiFn/LogGroup (IngestionApiFnLogGroupD41E8121) 
+IqgCdkStack | 55/68 | 6:51:03 AM | CREATE_COMPLETE      | AWS::Logs::LogGroup                         | PersistSelectionFn/LogGroup (PersistSelectionFnLogGroup33A95219) 
+IqgCdkStack | 55/68 | 6:51:03 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | QuoteWorkerFn/LogGroup (QuoteWorkerFnLogGroup8EFD2B43) Eventual consistency check initiated
+IqgCdkStack | 55/68 | 6:51:04 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | ChatConversationFn/LogGroup (ChatConversationFnLogGroup21B385F2) Eventual consistency check initiated
+IqgCdkStack | 56/68 | 6:51:04 AM | CREATE_COMPLETE      | AWS::Logs::LogGroup                         | QuoteWorkerFn/LogGroup (QuoteWorkerFnLogGroup8EFD2B43) 
+IqgCdkStack | 56/68 | 6:51:04 AM | CREATE_IN_PROGRESS   | AWS::Logs::LogGroup                         | AuthorizerFn/LogGroup (AuthorizerFnLogGroupA5DB7646) Eventual consistency check initiated
+IqgCdkStack | 57/68 | 6:51:04 AM | CREATE_COMPLETE      | AWS::Logs::LogGroup                         | ChatConversationFn/LogGroup (ChatConversationFnLogGroup21B385F2) 
+IqgCdkStack | 58/68 | 6:51:04 AM | CREATE_COMPLETE      | AWS::ApiGateway::Stage                      | IqgApi/DeploymentStage.v1 (IqgApiDeploymentStagev1D8463DA1) 
+IqgCdkStack | 59/68 | 6:51:04 AM | CREATE_COMPLETE      | AWS::Logs::LogGroup                         | AuthorizerFn/LogGroup (AuthorizerFnLogGroupA5DB7646) 
+IqgCdkStack | 59/68 | 6:51:04 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/submit/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.quotes.submit (IqgApiv1quotessubmitPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1quotessubmit56899285) 
+IqgCdkStack | 59/68 | 6:51:04 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/{transactionId}/GET/ApiPermission.IqgCdkStackIqgApi087CD000.GET..v1.quotes.{transactionId} (IqgApiv1quotestransactionIdGETApiPermissionIqgCdkStackIqgApi087CD000GETv1quotestransactionId2EDDB196) 
+IqgCdkStack | 59/68 | 6:51:04 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/chat/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.chat (IqgApiv1chatPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1chat94294B47) 
+IqgCdkStack | 59/68 | 6:51:04 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/healthz/GET/ApiPermission.IqgCdkStackIqgApi087CD000.GET..v1.healthz (IqgApiv1healthzGETApiPermissionIqgCdkStackIqgApi087CD000GETv1healthz458D80B0) 
+IqgCdkStack | 59/68 | 6:51:05 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/selections/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.selections (IqgApiv1selectionsPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1selections84D200D0) 
+IqgCdkStack | 59/68 | 6:51:05 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/{transactionId}/GET/ApiPermission.IqgCdkStackIqgApi087CD000.GET..v1.quotes.{transactionId} (IqgApiv1quotestransactionIdGETApiPermissionIqgCdkStackIqgApi087CD000GETv1quotestransactionId2EDDB196) Resource creation Initiated
+IqgCdkStack | 59/68 | 6:51:05 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/chat/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.chat (IqgApiv1chatPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1chat94294B47) Resource creation Initiated
+IqgCdkStack | 59/68 | 6:51:05 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/submit/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.quotes.submit (IqgApiv1quotessubmitPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1quotessubmit56899285) Resource creation Initiated
+IqgCdkStack | 59/68 | 6:51:05 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/healthz/GET/ApiPermission.IqgCdkStackIqgApi087CD000.GET..v1.healthz (IqgApiv1healthzGETApiPermissionIqgCdkStackIqgApi087CD000GETv1healthz458D80B0) Resource creation Initiated
+IqgCdkStack | 59/68 | 6:51:06 AM | CREATE_IN_PROGRESS   | AWS::Lambda::Permission                     | IqgApi/Default/v1/selections/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.selections (IqgApiv1selectionsPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1selections84D200D0) Resource creation Initiated
+IqgCdkStack | 60/68 | 6:51:06 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/{transactionId}/GET/ApiPermission.IqgCdkStackIqgApi087CD000.GET..v1.quotes.{transactionId} (IqgApiv1quotestransactionIdGETApiPermissionIqgCdkStackIqgApi087CD000GETv1quotestransactionId2EDDB196) 
+IqgCdkStack | 61/68 | 6:51:06 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/chat/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.chat (IqgApiv1chatPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1chat94294B47) 
+IqgCdkStack | 62/68 | 6:51:06 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/quotes/submit/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.quotes.submit (IqgApiv1quotessubmitPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1quotessubmit56899285) 
+IqgCdkStack | 63/68 | 6:51:06 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/healthz/GET/ApiPermission.IqgCdkStackIqgApi087CD000.GET..v1.healthz (IqgApiv1healthzGETApiPermissionIqgCdkStackIqgApi087CD000GETv1healthz458D80B0) 
+IqgCdkStack | 64/68 | 6:51:06 AM | CREATE_COMPLETE      | AWS::Lambda::Permission                     | IqgApi/Default/v1/selections/POST/ApiPermission.IqgCdkStackIqgApi087CD000.POST..v1.selections (IqgApiv1selectionsPOSTApiPermissionIqgCdkStackIqgApi087CD000POSTv1selections84D200D0) 
+IqgCdkStack | 65/68 | 6:51:07 AM | CREATE_COMPLETE      | AWS::Lambda::EventSourceMapping             | QuoteWorkerFn/SqsEventSource:IqgCdkStackQuoteJobsQueueEF61EEA1 (QuoteWorkerFnSqsEventSourceIqgCdkStackQuoteJobsQueueEF61EEA1226F3D92) 
+IqgCdkStack | 66/68 | 6:57:02 AM | CREATE_COMPLETE      | AWS::RDS::DBInstance                        | AuroraCluster/writer (AuroraClusterwriter499C523E) 
+IqgCdkStack | 67/68 | 6:57:03 AM | CREATE_COMPLETE      | AWS::CloudFormation::Stack                  | IqgCdkStack 
+
+ ✅  IqgCdkStack
+
+✨  Deployment time: 460s
+
+Outputs:
+IqgCdkStack.ApiUrl = https://7phumt11j8.execute-api.us-east-1.amazonaws.com/v1/
+IqgCdkStack.AuditBucketName = iqg-audit-867344470917-us-east-1
+IqgCdkStack.AuroraClusterArn = arn:aws:rds:us-east-1:867344470917:cluster:iqg-aurora-cluster
+IqgCdkStack.AuroraSecretArn = arn:aws:secretsmanager:us-east-1:867344470917:secret:AuroraSecret41E6E877-ogZqDVP4P1dt-JcOo7c
+IqgCdkStack.ChatHistoryTableName = iqg-chat-history
+IqgCdkStack.CognitoDomain = https://iqg-auth-867344470917.auth.us-east-1.amazoncognito.com
+IqgCdkStack.IqgApiEndpointD0C63AFA = https://7phumt11j8.execute-api.us-east-1.amazonaws.com/v1/
+IqgCdkStack.QuoteJobsQueueUrl = https://sqs.us-east-1.amazonaws.com/867344470917/iqg-quote-jobs
+IqgCdkStack.QuoteResultsTableName = iqg-quote-results
+IqgCdkStack.UserPoolClientId = 56ilueodgm4jmccvb5l9bjj47l
+IqgCdkStack.UserPoolId = us-east-1_dVaDd5mr8
+Stack ARN:
+arn:aws:cloudformation:us-east-1:867344470917:stack/IqgCdkStack/90fd1c30-5cbc-11f1-8c30-0e5760c9e34d
+
+✨  Total time: 471.04s
+

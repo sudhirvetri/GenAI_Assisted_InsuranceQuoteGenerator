@@ -1,0 +1,434 @@
+import {
+  Stack,
+  StackProps,
+  Aws,
+  Duration,
+  RemovalPolicy,
+  CfnOutput,
+} from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as rds from 'aws-cdk-lib/aws-rds';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+
+export class IqgCdkStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
+    super(scope, id, props);
+
+    // ------------------------------------------------------------------
+    // 1. AURORA SERVERLESS V2 (PostgreSQL)
+    // ------------------------------------------------------------------
+    const vpc = ec2.Vpc.fromLookup(this, 'IqgVpc', {
+      vpcId: 'vpc-02b8b81c9e12e82dd',
+    });
+
+    const auroraSubnets: ec2.ISubnet[] = [
+      ec2.Subnet.fromSubnetId(this, 'AuroraSubnet1b', 'subnet-0e3ada429e10603e3'),
+      ec2.Subnet.fromSubnetId(this, 'AuroraSubnet1c', 'subnet-0a7b31cc011811219'),
+      ec2.Subnet.fromSubnetId(this, 'AuroraSubnet1a', 'subnet-0113efea3112b7b32'),
+    ];
+
+    const auroraSg = new ec2.SecurityGroup(this, 'AuroraSecurityGroup', {
+      vpc,
+      description: 'Allow PostgreSQL access from within the VPC',
+      allowAllOutbound: true,
+    });
+    auroraSg.addIngressRule(
+      ec2.Peer.ipv4('172.31.0.0/16'),
+      ec2.Port.tcp(5432),
+      'Allow PostgreSQL from within VPC CIDR',
+    );
+
+    const auroraSecret = new rds.DatabaseSecret(this, 'AuroraSecret', {
+      username: 'iqgadmin',
+    });
+
+    const auroraCluster = new rds.DatabaseCluster(this, 'AuroraCluster', {
+      clusterIdentifier: 'iqg-aurora-cluster',
+      engine: rds.DatabaseClusterEngine.auroraPostgres({
+        version: rds.AuroraPostgresEngineVersion.VER_15_8,
+      }),
+      credentials: rds.Credentials.fromSecret(auroraSecret),
+      defaultDatabaseName: 'txndb',
+      enableDataApi: true,
+      serverlessV2MinCapacity: 0.5,
+      serverlessV2MaxCapacity: 4,
+      writer: rds.ClusterInstance.serverlessV2('writer'),
+      vpc,
+      vpcSubnets: { subnets: auroraSubnets },
+      securityGroups: [auroraSg],
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    // Note: The cluster hosts two logical databases — txndb (default, created by the cluster)
+    // and plandb (created post-deploy via the Data API or a bootstrap script).
+    // Both names are passed to Lambdas via DB_NAME_TXN / DB_NAME_PLAN environment variables.
+
+    // ------------------------------------------------------------------
+    // 2. DYNAMODB TABLES
+    // ------------------------------------------------------------------
+    const wsConnectionsTable = new dynamodb.Table(this, 'WsConnectionsTable', {
+      tableName: 'iqg-ws-connections',
+      partitionKey: { name: 'connectionId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'expiresAt',
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const chatHistoryTable = new dynamodb.Table(this, 'ChatHistoryTable', {
+      tableName: 'iqg-chat-history',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'turnId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'expiresAt',
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const idempotencyTable = new dynamodb.Table(this, 'IdempotencyKeysTable', {
+      tableName: 'iqg-idempotency-keys',
+      partitionKey: { name: 'idempotencyKey', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'expiresAt',
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const quoteResultsTable = new dynamodb.Table(this, 'QuoteResultsTable', {
+      tableName: 'iqg-quote-results',
+      partitionKey: { name: 'transactionId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'expiresAt',
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    // ------------------------------------------------------------------
+    // 3. S3 BUCKET (audit)
+    // ------------------------------------------------------------------
+    const auditBucket = new s3.Bucket(this, 'AuditBucket', {
+      bucketName: `iqg-audit-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+      versioned: true,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      lifecycleRules: [
+        {
+          enabled: true,
+          transitions: [
+            {
+              storageClass: s3.StorageClass.GLACIER,
+              transitionAfter: Duration.days(90),
+            },
+          ],
+        },
+      ],
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    // ------------------------------------------------------------------
+    // 4. SQS + DLQ
+    // ------------------------------------------------------------------
+    const quoteJobsDlq = new sqs.Queue(this, 'QuoteJobsDlq', {
+      queueName: 'iqg-quote-jobs-dlq',
+      retentionPeriod: Duration.days(14),
+      encryption: sqs.QueueEncryption.SQS_MANAGED,
+    });
+
+    const quoteJobsQueue = new sqs.Queue(this, 'QuoteJobsQueue', {
+      queueName: 'iqg-quote-jobs',
+      visibilityTimeout: Duration.minutes(5),
+      retentionPeriod: Duration.days(4),
+      encryption: sqs.QueueEncryption.SQS_MANAGED,
+      deadLetterQueue: {
+        maxReceiveCount: 3,
+        queue: quoteJobsDlq,
+      },
+    });
+
+    // ------------------------------------------------------------------
+    // 5. COGNITO USER POOL
+    // ------------------------------------------------------------------
+    const userPool = new cognito.UserPool(this, 'IqgUserPool', {
+      userPoolName: 'iqg-user-pool',
+      selfSignUpEnabled: true,
+      signInAliases: { email: true },
+      autoVerify: { email: true },
+      standardAttributes: {
+        email: { required: true, mutable: true },
+      },
+      passwordPolicy: {
+        minLength: 8,
+        requireSymbols: false,
+      },
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const userPoolClient = new cognito.UserPoolClient(this, 'IqgUserPoolClient', {
+      userPool,
+      userPoolClientName: 'iqg-web-client',
+      generateSecret: false,
+      authFlows: {
+        userPassword: true,
+        userSrp: true,
+      },
+      oAuth: {
+        flows: {
+          implicitCodeGrant: true,
+          authorizationCodeGrant: true,
+        },
+        callbackUrls: [
+          'http://localhost:5173/callback',
+          'https://localhost:5173/callback',
+        ],
+        logoutUrls: [
+          'http://localhost:5173',
+          'https://localhost:5173',
+        ],
+        scopes: [
+          cognito.OAuthScope.EMAIL,
+          cognito.OAuthScope.OPENID,
+          cognito.OAuthScope.PROFILE,
+        ],
+      },
+    });
+
+    new cognito.UserPoolDomain(this, 'IqgUserPoolDomain', {
+      userPool,
+      cognitoDomain: {
+        domainPrefix: `iqg-auth-${Aws.ACCOUNT_ID}`,
+      },
+    });
+
+    // ------------------------------------------------------------------
+    // 6. IAM ROLE FOR LAMBDAS
+    // ------------------------------------------------------------------
+    const lambdaRole = new iam.Role(this, 'IqgLambdaRole', {
+      roleName: 'iqg-lambda-role',
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+      ],
+    });
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+      resources: ['*'],
+    }));
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: [
+        'dynamodb:GetItem',
+        'dynamodb:PutItem',
+        'dynamodb:UpdateItem',
+        'dynamodb:DeleteItem',
+        'dynamodb:Query',
+        'dynamodb:Scan',
+      ],
+      resources: [
+        wsConnectionsTable.tableArn,
+        chatHistoryTable.tableArn,
+        idempotencyTable.tableArn,
+        quoteResultsTable.tableArn,
+      ],
+    }));
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: [
+        'sqs:SendMessage',
+        'sqs:ReceiveMessage',
+        'sqs:DeleteMessage',
+        'sqs:GetQueueAttributes',
+      ],
+      resources: [quoteJobsQueue.queueArn],
+    }));
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['s3:PutObject', 's3:GetObject'],
+      resources: [auditBucket.bucketArn, `${auditBucket.bucketArn}/*`],
+    }));
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['secretsmanager:GetSecretValue'],
+      resources: [auroraSecret.secretArn],
+    }));
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: [
+        'rds-data:ExecuteStatement',
+        'rds-data:BatchExecuteStatement',
+        'rds-data:BeginTransaction',
+        'rds-data:CommitTransaction',
+        'rds-data:RollbackTransaction',
+      ],
+      resources: [auroraCluster.clusterArn],
+    }));
+
+    // ------------------------------------------------------------------
+    // 7. LAMBDA FUNCTIONS
+    // ------------------------------------------------------------------
+    const commonEnv: { [key: string]: string } = {
+      REGION: 'us-east-1',
+      DB_CLUSTER_ARN: auroraCluster.clusterArn,
+      DB_SECRET_ARN: auroraSecret.secretArn,
+      DB_NAME_TXN: 'txndb',
+      DB_NAME_PLAN: 'plandb',
+      QUOTE_JOBS_QUEUE_URL: quoteJobsQueue.queueUrl,
+      QUOTE_RESULTS_TABLE: quoteResultsTable.tableName,
+      CHAT_HISTORY_TABLE: chatHistoryTable.tableName,
+      WS_CONNECTIONS_TABLE: wsConnectionsTable.tableName,
+      IDEMPOTENCY_TABLE: idempotencyTable.tableName,
+      AUDIT_BUCKET: auditBucket.bucketName,
+      BEDROCK_MODEL_ID: 'anthropic.claude-sonnet-4-6',
+      USER_POOL_ID: userPool.userPoolId,
+      USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
+    };
+
+    const ingestionApiFn = new lambda.Function(this, 'IngestionApiFn', {
+      functionName: 'iqg-ingestion-api',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'ingestion_api.handler',
+      code: lambda.Code.fromAsset('../lambda/ingestion_api'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(29),
+      environment: commonEnv,
+    });
+
+    const quoteWorkerFn = new lambda.Function(this, 'QuoteWorkerFn', {
+      functionName: 'iqg-quote-worker',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'quote_worker.handler',
+      code: lambda.Code.fromAsset('../lambda/quote_worker'),
+      role: lambdaRole,
+      memorySize: 512,
+      timeout: Duration.minutes(5),
+      environment: commonEnv,
+    });
+
+    quoteWorkerFn.addEventSource(new lambdaEventSources.SqsEventSource(quoteJobsQueue, {
+      batchSize: 1,
+      enabled: true,
+    }));
+
+    const chatConversationFn = new lambda.Function(this, 'ChatConversationFn', {
+      functionName: 'iqg-chat-conversation',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'chat_conversation.handler',
+      code: lambda.Code.fromAsset('../lambda/chat_conversation'),
+      role: lambdaRole,
+      memorySize: 512,
+      timeout: Duration.seconds(60),
+      environment: commonEnv,
+    });
+
+    const authorizerFn = new lambda.Function(this, 'AuthorizerFn', {
+      functionName: 'iqg-authorizer',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'authorizer.handler',
+      code: lambda.Code.fromAsset('../lambda/authorizer'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(10),
+      environment: commonEnv,
+    });
+
+    const getQuoteFn = new lambda.Function(this, 'GetQuoteFn', {
+      functionName: 'iqg-get-quote',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'get_quote.handler',
+      code: lambda.Code.fromAsset('../lambda/get_quote'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(10),
+      environment: commonEnv,
+    });
+
+    const persistSelectionFn = new lambda.Function(this, 'PersistSelectionFn', {
+      functionName: 'iqg-persist-selection',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'persist_selection.handler',
+      code: lambda.Code.fromAsset('../lambda/persist_selection'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(15),
+      environment: commonEnv,
+    });
+
+    // ------------------------------------------------------------------
+    // 8. API GATEWAY (REST API)
+    // ------------------------------------------------------------------
+    const api = new apigateway.RestApi(this, 'IqgApiV2', {
+      restApiName: 'iqg-api',
+      description: 'IQG Insurance Quote Generator API v1',
+      endpointConfiguration: { types: [apigateway.EndpointType.REGIONAL] },
+      deployOptions: { stageName: 'v1' },
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: ['OPTIONS', 'GET', 'POST'],
+        allowHeaders: [
+          'Content-Type',
+          'Authorization',
+          'X-Correlation-Id',
+          'Idempotency-Key',
+        ],
+      },
+    });
+
+    const tokenAuthorizer = new apigateway.TokenAuthorizer(this, 'IqgTokenAuthorizer', {
+      authorizerName: 'iqg-token-authorizer',
+      handler: authorizerFn,
+      identitySource: 'method.request.header.Authorization',
+      resultsCacheTtl: Duration.seconds(300),
+    });
+
+    const v1 = api.root;
+
+    const quotes = v1.addResource('quotes');
+    const quotesSubmit = quotes.addResource('submit');
+    quotesSubmit.addMethod('POST', new apigateway.LambdaIntegration(ingestionApiFn), {
+      authorizer: tokenAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
+
+    const quotesById = quotes.addResource('{transactionId}');
+    quotesById.addMethod('GET', new apigateway.LambdaIntegration(getQuoteFn), {
+      authorizer: tokenAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
+
+    const chat = v1.addResource('chat');
+    chat.addMethod('POST', new apigateway.LambdaIntegration(chatConversationFn), {
+      authorizer: tokenAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
+
+    const selections = v1.addResource('selections');
+    selections.addMethod('POST', new apigateway.LambdaIntegration(persistSelectionFn), {
+      authorizer: tokenAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
+
+    const healthz = v1.addResource('healthz');
+    healthz.addMethod('GET', new apigateway.LambdaIntegration(getQuoteFn));
+
+    // ------------------------------------------------------------------
+    // 9. CLOUDFORMATION OUTPUTS
+    // ------------------------------------------------------------------
+    new CfnOutput(this, 'ApiUrl', { value: api.url });
+    new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
+    new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
+    new CfnOutput(this, 'CognitoDomain', {
+      value: `https://iqg-auth-${Aws.ACCOUNT_ID}.auth.us-east-1.amazoncognito.com`,
+    });
+    new CfnOutput(this, 'AuroraClusterArn', { value: auroraCluster.clusterArn });
+    new CfnOutput(this, 'AuroraSecretArn', { value: auroraSecret.secretArn });
+    new CfnOutput(this, 'AuditBucketName', { value: auditBucket.bucketName });
+    new CfnOutput(this, 'QuoteJobsQueueUrl', { value: quoteJobsQueue.queueUrl });
+    new CfnOutput(this, 'QuoteResultsTableName', { value: quoteResultsTable.tableName });
+    new CfnOutput(this, 'ChatHistoryTableName', { value: chatHistoryTable.tableName });
+  }
+}

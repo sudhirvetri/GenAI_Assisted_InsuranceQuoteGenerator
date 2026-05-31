@@ -1,0 +1,103 @@
+Flow A — Async Quote Generation:
+===============================
+
+
+Browser                    API Gateway         Lambda              AWS Services
+   |                           |                  |                     |
+   | POST /v1/quotes/submit    |                  |                     |
+   |-------------------------->|                  |                     |
+   |                           | invoke           |                     |
+   |                           |----------------->| ingestion_api       |
+   |                           |                  | 1. Validate input   |
+   |                           |                  | 2. INSERT txndb     |
+   |                           |                  | 3. SQS.send_message |
+   |                           |                  |-------------------->| SQS
+   |                           |                  |                     |
+   |  202 {transaction_id}     |                  |                     |
+   |<--------------------------|                  |                     |
+   |                           |                  |                     |
+   | (SQS triggers async)      |                  |                     |
+   |                           |                  | quote_worker        |
+   |                           |                  |<--------------------| SQS trigger
+   |                           |                  | 1. Query plandb     |
+   |                           |                  |    (filter by       |
+   |                           |                  |     category+age)   |
+   |                           |                  | 2. Build prompt     |
+   |                           |                  | 3. Bedrock invoke   |
+   |                           |                  |-------------------->| Bedrock
+   |                           |                  |<--------------------| AI response
+   |                           |                  | 4. Save to DynamoDB |
+   |                           |                  |    iqg-quote-results|
+   |                           |                  |    PK=transaction_id|
+   |                           |                  | 5. Write S3 audit   |
+   |                           |                  |                     |
+   |                           |                  |                     |
+   | (Browser polls every 2s)  |                  |                     |
+   | GET /v1/quotes/{txn_id}   |                  |                     |
+   |-------------------------->|                  |                     |
+   |                           |----------------->| get_quote           |
+   |                           |                  | DynamoDB.get_item   |
+   |                           |                  | status=PENDING?     |
+   |  {status:"PENDING"}       |                  |                     |
+   |<--------------------------|                  |                     |
+   | (wait 2s, poll again)     |                  |                     |
+   |-------------------------->|                  |                     |
+   |                           |----------------->| get_quote           |
+   |                           |                  | status=COMPLETE ✓   |
+   |  {status:"COMPLETE",      |                  |                     |
+   |   recommendations:[...]}  |                  |                     |
+   |<--------------------------|                  |                     |
+   | Render 3 plan cards       |                  |                     |
+
+
+
+
+   Flow B — Real-Time Conversational AI:
+   =====================================
+
+   Browser                    API Gateway         Lambda              AWS Services
+   |                           |                  |                     |
+   | (After seeing plan cards) |                  |                     |
+   |                           |                  |                     |
+   | POST /v1/chat             |                  |                     |
+   | {                         |                  |                     |
+   |   transaction_id,         |                  |                     |
+   |   message: "Why is        |                  |                     |
+   |   Plan A higher           |                  |                     |
+   |   than Plan B?",          |                  |                     |
+   |   turn_id                 |                  |                     |
+   | }                         |                  |                     |
+   |-------------------------->|                  |                     |
+   |                           |----------------->| chat_conversation   |
+   |                           |                  | 1. Load last 10     |
+   |                           |                  |    turns from       |
+   |                           |                  |    DynamoDB         |
+   |                           |                  |    chat-history     |
+   |                           |                  | 2. Load quote       |
+   |                           |                  |    context from     |
+   |                           |                  |    quote-results    |
+   |                           |                  |    (the 3 plans     |
+   |                           |                  |     already shown)  |
+   |                           |                  | 3. Build prompt     |
+   |                           |                  |    with history +   |
+   |                           |                  |    plan context     |
+   |                           |                  | 4. Bedrock invoke   |
+   |                           |                  |-------------------->| Bedrock
+   |                           |                  |<--------------------| response
+   |                           |                  | 5. Save both turns  |
+   |                           |                  |    to chat-history  |
+   |                           |                  | 6. Return response  |
+   |  200 {answer, turn_id}    |                  |                     |
+   |<--------------------------|                  |                     |
+   | Display answer in         |                  |                     |
+   | chat panel                |                  |                     |
+   |                           |                  |                     |
+   | POST /v1/chat (turn 2)    |                  |                     |
+   | "What about maternity     |                  |                     |
+   |  cover in Plan B?"        |                  |                     |
+   |-------------------------->|                  |                     |
+   |                           |----------------->| chat_conversation   |
+   |                           |                  | Loads turns 1+2     |
+   |                           |                  | from history ←      |
+   |                           |                  | Bedrock has full    |
+   |                           |                  | conversation context|
