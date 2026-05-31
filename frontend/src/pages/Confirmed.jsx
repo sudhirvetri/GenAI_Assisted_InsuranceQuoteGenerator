@@ -43,7 +43,6 @@ export default function Confirmed() {
       .then(async res => {
         if (res.status === 409) {
           // Already selected — treat as success
-          setSelectedPlan(plan)
           setError(null)
           setSubmitting(false)
           setConfirmed(true)
