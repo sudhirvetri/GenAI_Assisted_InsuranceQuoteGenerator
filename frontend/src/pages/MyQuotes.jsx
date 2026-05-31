@@ -131,7 +131,7 @@ export default function MyQuotes() {
         if (!data.count || data.count === 0) {
           navigate('/quote-form', { replace: true })
         } else {
-          setTransactions(data.transactions || [])
+          setTransactions(data.transactions.filter(t => t.status === 'COMPLETE') || [])
           setLoading(false)
         }
       })
