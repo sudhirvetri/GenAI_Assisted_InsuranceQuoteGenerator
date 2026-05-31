@@ -112,7 +112,7 @@ def handler(event, context):
         result = db_execute(
             """
             SELECT transaction_id, user_id FROM transactions
-            WHERE transaction_id = :transaction_id
+            WHERE transaction_id = :transaction_id::uuid
             """,
             [make_param("transaction_id", transaction_id)],
         )
@@ -146,7 +146,7 @@ def handler(event, context):
         result = db_execute(
             """
             SELECT selection_id FROM plan_selections
-            WHERE transaction_id = :transaction_id
+            WHERE transaction_id = :transaction_id::uuid
             """,
             [make_param("transaction_id", transaction_id)],
         )
@@ -166,7 +166,7 @@ def handler(event, context):
             """
             INSERT INTO plan_selections
                 (transaction_id, plan_id, rank_shown, compared_against)
-            VALUES (:transaction_id, :plan_id, :rank_shown, :compared_against::jsonb)
+            VALUES (:transaction_id::uuid, :plan_id, :rank_shown, :compared_against::jsonb)
             RETURNING selection_id
             """,
             [

@@ -133,13 +133,13 @@ export default function Confirmed() {
                   <div className="bg-gray-50 rounded-lg p-3">
                     <div className="text-gray-500 text-xs mb-0.5">Co-payment</div>
                     <div className="font-semibold">
-                      {plan.co_payment === 0 ? 'Zero Co-pay' : `${plan.co_payment}%`}
+                      {plan.co_payment_pct === 0 ? 'Zero Co-pay' : `${plan.co_payment_pct}%`}
                     </div>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 col-span-2">
                     <div className="text-gray-500 text-xs mb-0.5">PED Waiting Period</div>
                     <div className="font-semibold">
-                      {plan.ped_waiting_period ? `${plan.ped_waiting_period} months` : '—'}
+                      {plan.ped_waiting_months ? `${plan.ped_waiting_months} months` : '—'}
                     </div>
                   </div>
                 </div>
