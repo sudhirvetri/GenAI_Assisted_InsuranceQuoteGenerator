@@ -16,6 +16,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export class IqgCdkStack extends Stack {
@@ -447,5 +448,70 @@ export class IqgCdkStack extends Stack {
     new CfnOutput(this, 'QuoteJobsQueueUrl', { value: quoteJobsQueue.queueUrl });
     new CfnOutput(this, 'QuoteResultsTableName', { value: quoteResultsTable.tableName });
     new CfnOutput(this, 'ChatHistoryTableName', { value: chatHistoryTable.tableName });
+
+    // ------------------------------------------------------------------
+    // FRONTEND — S3 + CloudFront
+    // ------------------------------------------------------------------
+    const spaBucket = new s3.Bucket(this, 'SpaBucket', {
+      bucketName: `iqg-spa-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
+
+    const oac = new cloudfront.CfnOriginAccessControl(this, 'SpaOAC', {
+      originAccessControlConfig: {
+        name: 'iqg-spa-oac',
+        originAccessControlOriginType: 's3',
+        signingBehavior: 'always',
+        signingProtocol: 'sigv4',
+      },
+    });
+
+    const distribution = new cloudfront.CfnDistribution(this, 'SpaDistribution', {
+      distributionConfig: {
+        enabled: true,
+        defaultRootObject: 'index.html',
+        origins: [{
+          id: 'spa-s3-origin',
+          domainName: spaBucket.bucketRegionalDomainName,
+          originAccessControlId: oac.attrId,
+          s3OriginConfig: { originAccessIdentity: '' },
+        }],
+        defaultCacheBehavior: {
+          targetOriginId: 'spa-s3-origin',
+          viewerProtocolPolicy: 'redirect-to-https',
+          allowedMethods: ['GET', 'HEAD', 'OPTIONS'],
+          cachedMethods: ['GET', 'HEAD'],
+          compress: true,
+          forwardedValues: {
+            queryString: false,
+            cookies: { forward: 'none' },
+          },
+          defaultTtl: 86400,
+        },
+        customErrorResponses: [
+          { errorCode: 403, responseCode: 200, responsePagePath: '/index.html' },
+          { errorCode: 404, responseCode: 200, responsePagePath: '/index.html' },
+        ],
+        httpVersion: 'http2',
+        priceClass: 'PriceClass_100',
+      },
+    });
+
+    spaBucket.addToResourcePolicy(new iam.PolicyStatement({
+      actions: ['s3:GetObject'],
+      resources: [`${spaBucket.bucketArn}/*`],
+      principals: [new iam.ServicePrincipal('cloudfront.amazonaws.com')],
+      conditions: {
+        StringEquals: {
+          'AWS:SourceArn': `arn:aws:cloudfront::${Aws.ACCOUNT_ID}:distribution/${distribution.attrId}`,
+        },
+      },
+    }));
+
+    new CfnOutput(this, 'SpaBucketName', { value: spaBucket.bucketName });
+    new CfnOutput(this, 'CloudFrontUrl', { value: `https://${distribution.attrDomainName}` });
+    new CfnOutput(this, 'CloudFrontDistributionId', { value: distribution.attrId });
   }
 }
