@@ -43,11 +43,11 @@ export default function Confirmed() {
       .then(async res => {
         if (res.status === 409) {
           // Already selected — treat as success
-          const data = await res.json().catch(() => ({}))
           setSelectedPlan(plan)
           setError(null)
           setSubmitting(false)
-          return
+          setConfirmed(true)
+          return null
         }
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
@@ -55,7 +55,7 @@ export default function Confirmed() {
         }
         return res.json()
       })
-      .then(() => setConfirmed(true))
+      .then(data => { if (data !== null) setConfirmed(true) })
       .catch(err => setError(err.message || 'Selection could not be saved.'))
       .finally(() => setSubmitting(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
