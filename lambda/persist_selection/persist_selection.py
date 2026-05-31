@@ -180,6 +180,8 @@ def handler(event, context):
         selection_id = sel_rows[0]["selection_id"]
     except Exception as exc:
         print("Selection insert failed: %s" % exc)
+        if "duplicate key" in str(exc) or "23505" in str(exc) or "uq_plan_selections" in str(exc):
+            return respond(409, {"error": "Selection already exists for this transaction"})
         return respond(500, {"error": "Failed to persist selection"})
 
     selection_id = (
