@@ -14,6 +14,11 @@ export function AuthProvider({ children }) {
   function logout() {
     setToken(null)
     setUserId(null)
+    // Sign out from Cognito hosted UI and redirect to landing page
+    const cognitoDomain = 'https://iqg-auth-867344470917.auth.us-east-1.amazoncognito.com'
+    const clientId = '56ilueodgm4jmccvb5l9bjj47l'
+    const logoutUri = encodeURIComponent('https://dtqht50eixzia.cloudfront.net')
+    window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${logoutUri}`
   }
 
   return (

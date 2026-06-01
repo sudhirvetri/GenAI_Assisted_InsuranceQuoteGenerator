@@ -65,7 +65,7 @@ export default function Confirmed() {
         <div className="text-center">
           <p className="text-gray-600 mb-4">No plan selected.</p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/my-quotes')}
             className="text-teal-600 font-semibold hover:underline"
           >
             Start Over
@@ -172,7 +172,7 @@ export default function Confirmed() {
                 </div>
 
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/my-quotes')}
                   className="w-full border-2 border-teal-600 text-teal-600 hover:bg-teal-50 font-semibold py-3 rounded-xl transition-colors"
                 >
                   Start Over
