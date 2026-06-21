@@ -1,26 +1,32 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useWebSocket } from '../context/WebSocketContext'
 import Navbar from '../components/Navbar'
 import PlanCard from '../components/PlanCard'
 import ChatPanel from '../components/ChatPanel'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const API_BASE = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
-const POLL_INTERVAL = 2000
+const POLL_INTERVAL = 3000
+const MAX_POLL_SECONDS = 30
 
 export default function Results() {
   const { transactionId } = useParams()
   const { token } = useAuth()
+  const { addHandler, removeHandler, wsReady } = useWebSocket()
   const navigate = useNavigate()
 
   const [status, setStatus] = useState('PENDING')
   const [recommendations, setRecommendations] = useState([])
   const [error, setError] = useState(null)
   const [elapsed, setElapsed] = useState(0)
+  const [source, setSource] = useState('websocket') // 'websocket' or 'polling'
   const pollRef = useRef(null)
+  const wsReceivedRef = useRef(false)
   const startTime = useRef(Date.now())
 
+  // Elapsed timer
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTime.current) / 1000))
@@ -28,10 +34,39 @@ export default function Results() {
     return () => clearInterval(timer)
   }, [])
 
+  // WebSocket handler — receives quote_complete push from quote_worker
+  const handleQuoteComplete = useCallback((data) => {
+    if (data.transaction_id !== transactionId) return
+    wsReceivedRef.current = true
+    clearInterval(pollRef.current)
+    setRecommendations(data.recommendations || [])
+    setStatus('COMPLETE')
+  }, [transactionId])
+
+  // Register WebSocket handler
+  useEffect(() => {
+    addHandler('quote_complete', handleQuoteComplete)
+    return () => removeHandler('quote_complete', handleQuoteComplete)
+  }, [addHandler, removeHandler, handleQuoteComplete])
+
+  // Polling fallback — starts after 2s but yields to WebSocket
   useEffect(() => {
     if (!token) return
 
     async function poll() {
+      // If WebSocket already delivered the result, stop polling
+      if (wsReceivedRef.current) {
+        clearInterval(pollRef.current)
+        return
+      }
+      // Stop polling after MAX_POLL_SECONDS
+      if (Math.floor((Date.now() - startTime.current) / 1000) > MAX_POLL_SECONDS) {
+        clearInterval(pollRef.current)
+        setError('Quote generation timed out. Please try again.')
+        setStatus('FAILED')
+        return
+      }
+
       try {
         const res = await fetch(`${API_BASE}/quotes/${transactionId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -40,9 +75,12 @@ export default function Results() {
         const data = await res.json()
 
         if (data.status === 'COMPLETE' || data.status === 'COMPLETED') {
-          clearInterval(pollRef.current)
-          setRecommendations(data.recommendations || [])
-          setStatus('COMPLETE')
+          if (!wsReceivedRef.current) {
+            clearInterval(pollRef.current)
+            setSource('polling')
+            setRecommendations(data.recommendations || [])
+            setStatus('COMPLETE')
+          }
         } else if (data.status === 'FAILED' || data.status === 'ERROR') {
           clearInterval(pollRef.current)
           setError('Quote generation failed. Please try again.')
@@ -55,9 +93,15 @@ export default function Results() {
       }
     }
 
-    poll()
-    pollRef.current = setInterval(poll, POLL_INTERVAL)
-    return () => clearInterval(pollRef.current)
+    // Start polling after 2 seconds (give WebSocket a chance to deliver first)
+    const startDelay = setTimeout(() => {
+      pollRef.current = setInterval(poll, POLL_INTERVAL)
+    }, 2000)
+
+    return () => {
+      clearTimeout(startDelay)
+      clearInterval(pollRef.current)
+    }
   }, [transactionId, token])
 
   function handleSelectPlan(plan) {
@@ -68,11 +112,7 @@ export default function Results() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-gray-600">
-          Please{' '}
-          <a href="/" className="text-teal-600 underline">
-            sign in
-          </a>{' '}
-          to view your results.
+          Please <a href="/" className="text-teal-600 underline">sign in</a> to view your results.
         </p>
       </div>
     )
@@ -109,19 +149,14 @@ export default function Results() {
               <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <div className="w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin" />
               </div>
-              <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center mx-auto -mt-14 relative z-10 opacity-0">
-                SC
-              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              Analyzing Your Profile
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Analyzing Your Profile</h2>
             <p className="text-gray-500 mb-4">
               Our AI is analyzing 30+ plans to find your best matches...
             </p>
             <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-2 rounded-full text-sm font-medium">
               <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse" />
-              Elapsed: {elapsed}s
+              {wsReady ? '⚡ Live streaming' : '🔄 Connecting...'} · {elapsed}s
             </div>
           </div>
         </div>
@@ -132,7 +167,6 @@ export default function Results() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
-
       <main className="flex-1 py-10 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">

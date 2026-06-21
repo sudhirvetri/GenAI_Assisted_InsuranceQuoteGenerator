@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useWebSocket } from '../context/WebSocketContext'
 import Navbar from '../components/Navbar'
 
 const API_BASE = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
@@ -65,6 +66,7 @@ function toggleItem(arr, item) {
 
 export default function QuoteForm() {
   const { token } = useAuth()
+  const { connectionId } = useWebSocket()
   const navigate = useNavigate()
   const [form, setForm] = useState(DEFAULT_FORM)
   const [submitting, setSubmitting] = useState(false)
@@ -134,6 +136,7 @@ export default function QuoteForm() {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          'X-Connection-Id': connectionId || '',
         },
         body: JSON.stringify(payload),
       })

@@ -28,6 +28,8 @@ DB_PLAN = os.environ.get("DB_NAME_PLAN", "plandb")
 QUOTE_RESULTS_TABLE = os.environ.get("QUOTE_RESULTS_TABLE", "iqg-quote-results")
 AUDIT_BUCKET = os.environ.get("AUDIT_BUCKET", "")
 BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
+WS_ENDPOINT = os.environ.get("WS_ENDPOINT", "")
+WS_CONNECTIONS_TABLE = os.environ.get("WS_CONNECTIONS_TABLE", "iqg-ws-connections")
 
 rds = boto3.client("rds-data", region_name=REGION)
 bedrock = boto3.client("bedrock-runtime", region_name=REGION)
@@ -303,6 +305,35 @@ def write_audit(transaction_id, user_id, plans_considered, recommendations_count
         print("S3 audit write failed (non-fatal): %s" % exc)
 
 
+def push_quote_result_via_websocket(connection_id, transaction_id, recommendations):
+    """
+    Push the completed quote result to the browser via WebSocket.
+    Best-effort — failures are logged but do not fail the job
+    since the result is already safely stored in DynamoDB.
+    """
+    if not connection_id or not WS_ENDPOINT:
+        return
+    try:
+        apigw = boto3.client(
+            "apigatewaymanagementapi",
+            endpoint_url=WS_ENDPOINT,
+            region_name=REGION,
+        )
+        payload = {
+            "type": "quote_complete",
+            "transaction_id": transaction_id,
+            "recommendations": recommendations,
+        }
+        apigw.post_to_connection(
+            ConnectionId=connection_id,
+            Data=json.dumps(payload, default=str).encode("utf-8"),
+        )
+        print("Pushed quote result to WebSocket: connection_id=%s" % connection_id)
+    except Exception as exc:
+        # GoneException = browser disconnected mid-wait, which is fine
+        print("WebSocket push failed (non-fatal): %s" % exc)
+
+
 # --------------------------------------------------------------------------- #
 # Core processing
 # --------------------------------------------------------------------------- #
@@ -415,6 +446,12 @@ def process_job(job):
 
     # 10. Privacy-safe audit to S3
     write_audit(transaction_id, user_id, len(plans), len(enriched_recommendations))
+
+    # 11. Push result to browser via WebSocket (best-effort)
+    connection_id = job.get("connection_id", "")
+    push_quote_result_via_websocket(
+        connection_id, transaction_id, enriched_recommendations
+    )
 
 
 def handler(event, context):

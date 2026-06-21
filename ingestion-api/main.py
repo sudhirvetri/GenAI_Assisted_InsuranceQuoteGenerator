@@ -160,7 +160,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Correlation-Id", "Idempotency-Key"],
+    allow_headers=["Content-Type", "Authorization", "X-Correlation-Id", "Idempotency-Key", "X-Connection-Id"],
 )
 
 
@@ -255,6 +255,7 @@ async def submit_quote(
     request: Request,
     authorization: Optional[str] = Header(None),
     idempotency_key: Optional[str] = Header(None, alias="idempotency-key"),
+    x_connection_id: Optional[str] = Header(None, alias="x-connection-id"),
 ):
     # 1. Extract user_id from JWT
     user_id = get_user_id_from_token(authorization)
@@ -362,6 +363,8 @@ async def submit_quote(
         raise HTTPException(status_code=500, detail={"error": "Failed to initialize quote result"})
 
     # 7. Publish SQS job — same message body as the Lambda so quote_worker is unchanged
+    # Get connection_id from header (sent by frontend when WebSocket is open)
+    connection_id = x_connection_id or ""
     job = {
         "transaction_id": transaction_id,
         "submission_id": submission_id,
@@ -373,6 +376,7 @@ async def submit_quote(
         "pre_existing_conditions": pre_existing_conditions,
         "target_si": target_si,
         "budget_premium": budget_premium,
+        "connection_id": connection_id,
     }
     try:
         sqs.send_message(QueueUrl=QUOTE_JOBS_QUEUE_URL, MessageBody=json.dumps(job))
