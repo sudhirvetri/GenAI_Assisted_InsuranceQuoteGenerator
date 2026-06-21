@@ -626,6 +626,7 @@ export class IqgCdkStack extends Stack {
     const spaBucket = new s3.Bucket(this, 'SpaBucket', {
       bucketName: `iqg-spa-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      versioned: true,
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
