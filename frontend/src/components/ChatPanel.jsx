@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
-
-const API_BASE = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
+import { useWebSocket } from '../context/WebSocketContext'
 
 function renderInline(text) {
   const parts = text.split(/(\*\*[^*]+\*\*)/)
@@ -53,11 +52,9 @@ function renderMarkdown(text) {
     <>
       {blocks.map((block, blockIdx) => {
         const lines = block.split('\n')
-
         if (lines[0]?.trim().startsWith('|')) {
           return <div key={blockIdx}>{renderTable(lines)}</div>
         }
-
         if (lines.length > 0 && lines.every(l => /^[-*]\s/.test(l))) {
           return (
             <ul key={blockIdx} className="list-disc list-inside space-y-0.5 mb-2 text-sm">
@@ -67,31 +64,12 @@ function renderMarkdown(text) {
             </ul>
           )
         }
-
         return (
           <div key={blockIdx} className="mb-2">
             {lines.map((line, lineIdx) => {
-              if (line.startsWith('### ')) {
-                return (
-                  <h4 key={lineIdx} className="font-semibold text-gray-800 mt-2 mb-1 text-sm">
-                    {renderInline(line.slice(4))}
-                  </h4>
-                )
-              }
-              if (line.startsWith('## ')) {
-                return (
-                  <h3 key={lineIdx} className="font-bold text-gray-900 mt-3 mb-1 text-sm">
-                    {renderInline(line.slice(3))}
-                  </h3>
-                )
-              }
-              if (/^[-*]\s/.test(line)) {
-                return (
-                  <ul key={lineIdx} className="list-disc list-inside text-sm">
-                    <li>{renderInline(line.replace(/^[-*]\s+/, ''))}</li>
-                  </ul>
-                )
-              }
+              if (line.startsWith('### ')) return <h4 key={lineIdx} className="font-semibold text-gray-800 mt-2 mb-1 text-sm">{renderInline(line.slice(4))}</h4>
+              if (line.startsWith('## ')) return <h3 key={lineIdx} className="font-bold text-gray-900 mt-3 mb-1 text-sm">{renderInline(line.slice(3))}</h3>
+              if (/^[-*]\s/.test(line)) return <ul key={lineIdx} className="list-disc list-inside text-sm"><li>{renderInline(line.replace(/^[-*]\s+/, ''))}</li></ul>
               if (!line.trim()) return null
               return <p key={lineIdx} className="text-sm">{renderInline(line)}</p>
             })}
@@ -104,51 +82,103 @@ function renderMarkdown(text) {
 
 export default function ChatPanel({ transactionId }) {
   const { token } = useAuth()
+  const { sendMessage, addHandler, removeHandler, wsReady } = useWebSocket()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [streaming, setStreaming] = useState(false)
+  const [streamingTurnId, setStreamingTurnId] = useState(null)
   const bottomRef = useRef(null)
+  const currentTurnRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function sendMessage() {
+  // Handle incoming chat_chunk frames from WebSocket
+  const handleChatChunk = useCallback((data) => {
+    if (data.turn_id !== currentTurnRef.current) return
+
+    if (!data.final) {
+      // Append delta to the streaming message
+      setMessages(prev => {
+        const last = prev[prev.length - 1]
+        if (last?.role === 'assistant' && last?.streaming) {
+          return [
+            ...prev.slice(0, -1),
+            { ...last, content: last.content + data.delta }
+          ]
+        }
+        // First chunk — create the streaming message bubble
+        return [...prev, { role: 'assistant', content: data.delta, streaming: true }]
+      })
+    } else {
+      // Final frame — mark message as complete
+      setMessages(prev => {
+        const last = prev[prev.length - 1]
+        if (last?.role === 'assistant' && last?.streaming) {
+          return [...prev.slice(0, -1), { ...last, streaming: false }]
+        }
+        return prev
+      })
+      setStreaming(false)
+      setStreamingTurnId(null)
+      currentTurnRef.current = null
+    }
+  }, [])
+
+  const handleWsError = useCallback((data) => {
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: data.message || 'Sorry, something went wrong.',
+      streaming: false,
+    }])
+    setStreaming(false)
+    currentTurnRef.current = null
+  }, [])
+
+  useEffect(() => {
+    addHandler('chat_chunk', handleChatChunk)
+    addHandler('error', handleWsError)
+    return () => {
+      removeHandler('chat_chunk', handleChatChunk)
+      removeHandler('error', handleWsError)
+    }
+  }, [addHandler, removeHandler, handleChatChunk, handleWsError])
+
+  async function sendChat() {
     const text = input.trim()
-    if (!text || loading) return
+    if (!text || streaming) return
+
+    const turnId = String(Date.now())
+    currentTurnRef.current = turnId
 
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: text }])
-    setLoading(true)
+    setStreaming(true)
+    setStreamingTurnId(turnId)
 
-    try {
-      const res = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ transaction_id: transactionId, message: text }),
-      })
+    const sent = sendMessage({
+      action: 'sendMessage',
+      transaction_id: transactionId,
+      message: text,
+      turn_id: turnId,
+    })
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      const reply = data.response || data.message || 'Sorry, I could not process that.'
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-    } catch {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' },
-      ])
-    } finally {
-      setLoading(false)
+    if (!sent) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Connection lost. Please refresh the page.',
+        streaming: false,
+      }])
+      setStreaming(false)
+      currentTurnRef.current = null
     }
   }
 
   function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      sendChat()
     }
   }
 
@@ -157,7 +187,10 @@ export default function ChatPanel({ transactionId }) {
       <h2 className="text-xl font-bold text-gray-900 mb-1">
         Have questions about your recommendations?
       </h2>
-      <p className="text-sm text-gray-500 mb-4">Ask our AI anything about these plans</p>
+      <p className="text-sm text-gray-500 mb-4">
+        Ask our AI anything about these plans
+        {wsReady && <span className="ml-2 text-teal-600 text-xs">⚡ Live</span>}
+      </p>
 
       <div className="border border-gray-200 rounded-lg h-64 overflow-y-auto p-4 mb-4 flex flex-col gap-3 bg-gray-50">
         {messages.length === 0 && (
@@ -166,10 +199,7 @@ export default function ChatPanel({ transactionId }) {
           </p>
         )}
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'user' ? (
               <div className="max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2 text-sm leading-relaxed bg-teal-600 text-white">
                 {msg.content}
@@ -177,11 +207,14 @@ export default function ChatPanel({ transactionId }) {
             ) : (
               <div className="max-w-[90%] rounded-2xl rounded-bl-sm px-4 py-3 bg-white border border-gray-200 shadow-sm text-gray-800">
                 {renderMarkdown(msg.content)}
+                {msg.streaming && (
+                  <span className="inline-block w-1 h-4 bg-teal-500 animate-pulse ml-0.5 align-middle" />
+                )}
               </div>
             )}
           </div>
         ))}
-        {loading && (
+        {streaming && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start">
             <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-2 shadow-sm">
               <div className="flex gap-1 items-center">
@@ -202,12 +235,12 @@ export default function ChatPanel({ transactionId }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
           placeholder="Ask about your plans..."
-          disabled={loading}
+          disabled={streaming}
           className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100"
         />
         <button
-          onClick={sendMessage}
-          disabled={loading || !input.trim()}
+          onClick={sendChat}
+          disabled={streaming || !input.trim()}
           className="bg-teal-600 hover:bg-teal-700 disabled:bg-teal-300 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
         >
           Send

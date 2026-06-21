@@ -16,6 +16,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
@@ -313,7 +314,8 @@ export class IqgCdkStack extends Stack {
       WS_CONNECTIONS_TABLE: wsConnectionsTable.tableName,
       IDEMPOTENCY_TABLE: idempotencyTable.tableName,
       AUDIT_BUCKET: auditBucket.bucketName,
-      BEDROCK_MODEL_ID: 'anthropic.claude-sonnet-4-6',
+      BEDROCK_MODEL_ID: 'us.anthropic.claude-sonnet-4-6',
+      CHAT_MAX_TOKENS: '1000',
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
     };
@@ -416,6 +418,7 @@ export class IqgCdkStack extends Stack {
           'Authorization',
           'X-Correlation-Id',
           'Idempotency-Key',
+          'X-Connection-Id',
         ],
       },
     });
@@ -468,6 +471,153 @@ export class IqgCdkStack extends Stack {
 
     const healthz = v1.addResource('healthz');
     healthz.addMethod('GET', new apigateway.LambdaIntegration(getQuoteFn));
+
+    // ------------------------------------------------------------------
+    // 8b. API GATEWAY WEBSOCKET API
+    // ------------------------------------------------------------------
+    const wsApi = new apigatewayv2.CfnApi(this, 'IqgWsApi', {
+      name: 'iqg-ws-api',
+      protocolType: 'WEBSOCKET',
+      routeSelectionExpression: '$request.body.action',
+    });
+
+    // Lambda functions for WebSocket routes
+    const wsAuthorizerFn = new lambda.Function(this, 'WsAuthorizerFn', {
+      functionName: 'iqg-ws-authorizer',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'ws_authorizer.handler',
+      code: lambda.Code.fromAsset('../lambda/ws_authorizer'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(10),
+      environment: commonEnv,
+    });
+
+    const wsConnectFn = new lambda.Function(this, 'WsConnectFn', {
+      functionName: 'iqg-ws-connect',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'ws_connect.handler',
+      code: lambda.Code.fromAsset('../lambda/ws_connect'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(10),
+      environment: commonEnv,
+    });
+
+    const wsDisconnectFn = new lambda.Function(this, 'WsDisconnectFn', {
+      functionName: 'iqg-ws-disconnect',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'ws_disconnect.handler',
+      code: lambda.Code.fromAsset('../lambda/ws_disconnect'),
+      role: lambdaRole,
+      memorySize: 256,
+      timeout: Duration.seconds(10),
+      environment: commonEnv,
+    });
+
+    const wsChatFn = new lambda.Function(this, 'WsChatFn', {
+      functionName: 'iqg-ws-chat',
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'ws_chat.handler',
+      code: lambda.Code.fromAsset('../lambda/ws_chat'),
+      role: lambdaRole,
+      memorySize: 512,
+      timeout: Duration.seconds(60),
+      environment: commonEnv,
+    });
+
+    // WebSocket stage — deploy first to get the endpoint URL
+    const wsStage = new apigatewayv2.CfnStage(this, 'IqgWsStage', {
+      apiId: wsApi.ref,
+      stageName: 'v1',
+      autoDeploy: true,
+    });
+
+    // WebSocket endpoint URL — needed by Lambdas for PostToConnection
+    const wsEndpoint = `https://${wsApi.ref}.execute-api.${this.region}.amazonaws.com/${wsStage.stageName}`;
+
+    // Add WS_ENDPOINT to all Lambda environments that need PostToConnection
+    quoteWorkerFn.addEnvironment('WS_ENDPOINT', wsEndpoint);
+    quoteWorkerFn.addEnvironment('WS_CONNECTIONS_TABLE', wsConnectionsTable.tableName);
+    wsChatFn.addEnvironment('WS_ENDPOINT', wsEndpoint);
+
+    // Grant execute-api:ManageConnections to roles that call PostToConnection
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['execute-api:ManageConnections'],
+      resources: [`arn:aws:execute-api:${this.region}:${this.account}:${wsApi.ref}/*`],
+    }));
+
+    // Lambda Authorizer for WebSocket $connect
+    const wsAuthorizer = new apigatewayv2.CfnAuthorizer(this, 'WsAuthorizer', {
+      apiId: wsApi.ref,
+      authorizerType: 'REQUEST',
+      authorizerUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${wsAuthorizerFn.functionArn}/invocations`,
+      identitySource: ['route.request.querystring.token'],
+      name: 'iqg-ws-authorizer',
+    });
+
+    wsAuthorizerFn.addPermission('WsAuthorizerPermission', {
+      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${wsApi.ref}/*`,
+    });
+
+    // Lambda integrations for WebSocket routes
+    const wsConnectIntegration = new apigatewayv2.CfnIntegration(this, 'WsConnectIntegration', {
+      apiId: wsApi.ref,
+      integrationType: 'AWS_PROXY',
+      integrationUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${wsConnectFn.functionArn}/invocations`,
+    });
+
+    const wsDisconnectIntegration = new apigatewayv2.CfnIntegration(this, 'WsDisconnectIntegration', {
+      apiId: wsApi.ref,
+      integrationType: 'AWS_PROXY',
+      integrationUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${wsDisconnectFn.functionArn}/invocations`,
+    });
+
+    const wsChatIntegration = new apigatewayv2.CfnIntegration(this, 'WsChatIntegration', {
+      apiId: wsApi.ref,
+      integrationType: 'AWS_PROXY',
+      integrationUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${wsChatFn.functionArn}/invocations`,
+    });
+
+    // WebSocket routes
+    new apigatewayv2.CfnRoute(this, 'WsConnectRoute', {
+      apiId: wsApi.ref,
+      routeKey: '$connect',
+      authorizationType: 'CUSTOM',
+      authorizerId: wsAuthorizer.ref,
+      target: `integrations/${wsConnectIntegration.ref}`,
+    });
+
+    new apigatewayv2.CfnRoute(this, 'WsDisconnectRoute', {
+      apiId: wsApi.ref,
+      routeKey: '$disconnect',
+      authorizationType: 'NONE',
+      target: `integrations/${wsDisconnectIntegration.ref}`,
+    });
+
+    new apigatewayv2.CfnRoute(this, 'WsSendMessageRoute', {
+      apiId: wsApi.ref,
+      routeKey: 'sendMessage',
+      authorizationType: 'NONE',
+      target: `integrations/${wsChatIntegration.ref}`,
+    });
+
+    // Lambda permissions for API Gateway WebSocket
+    wsConnectFn.addPermission('WsConnectPermission', {
+      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${wsApi.ref}/*`,
+    });
+
+    wsDisconnectFn.addPermission('WsDisconnectPermission', {
+      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${wsApi.ref}/*`,
+    });
+
+    wsChatFn.addPermission('WsChatPermission', {
+      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${wsApi.ref}/*`,
+    });
 
     // ------------------------------------------------------------------
     // 9a. ECS FARGATE — Ingestion API
@@ -645,6 +795,10 @@ export class IqgCdkStack extends Stack {
     new CfnOutput(this, 'QuoteJobsQueueUrl', { value: quoteJobsQueue.queueUrl });
     new CfnOutput(this, 'QuoteResultsTableName', { value: quoteResultsTable.tableName });
     new CfnOutput(this, 'ChatHistoryTableName', { value: chatHistoryTable.tableName });
+    new CfnOutput(this, 'WsApiUrl', {
+      value: `wss://${wsApi.ref}.execute-api.${this.region}.amazonaws.com/${wsStage.stageName}`,
+      description: 'WebSocket API URL for the frontend',
+    });
 
     // ------------------------------------------------------------------
     // FRONTEND — S3 + CloudFront
