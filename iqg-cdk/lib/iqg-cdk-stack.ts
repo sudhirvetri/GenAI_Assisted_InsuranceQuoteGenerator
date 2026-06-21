@@ -405,6 +405,13 @@ export class IqgCdkStack extends Stack {
 
     const quotes = v1.addResource('quotes');
     const quotesSubmit = quotes.addResource('submit');
+    quotesSubmit.addMethod('POST', new apigateway.HttpIntegration(
+      'http://iqg-alb-1023666751.us-east-1.elb.amazonaws.com/v1/quotes/submit',
+      { httpMethod: 'POST', proxy: true }
+    ), {
+      authorizer: tokenAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
 
     const quotesById = quotes.addResource('{transactionId}');
     quotesById.addMethod('GET', new apigateway.LambdaIntegration(getQuoteFn), {
@@ -419,6 +426,13 @@ export class IqgCdkStack extends Stack {
     });
 
     const selections = v1.addResource('selections');
+    selections.addMethod('POST', new apigateway.HttpIntegration(
+      'http://iqg-alb-1023666751.us-east-1.elb.amazonaws.com/v1/selections',
+      { httpMethod: 'POST', proxy: true }
+    ), {
+      authorizer: tokenAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+    });
 
     const myQuotes = v1.addResource('my-quotes');
     myQuotes.addMethod('GET', new apigateway.LambdaIntegration(getMyQuotesFn), {

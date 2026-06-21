@@ -4,9 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import LoadingSpinner from '../components/LoadingSpinner'
 
-// After ECS migration, /selections goes to ALB; other routes stay on API Gateway
-const API_BASE_ALB = 'http://REPLACE_WITH_ALB_DNS_AFTER_DEPLOY'
-const API_BASE     = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
+const API_BASE = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
 
 function formatINR(amount) {
   if (!amount && amount !== 0) return '—'
@@ -31,7 +29,7 @@ export default function Confirmed() {
     if (!plan || !transactionId || !token) return
 
     setSubmitting(true)
-    fetch(`${API_BASE_ALB}/v1/selections`, {
+    fetch(`${API_BASE}/selections`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
