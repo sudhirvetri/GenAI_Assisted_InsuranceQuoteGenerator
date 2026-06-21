@@ -1,0 +1,152 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pytest boto3
+
+      - name: Run Lambda import smoke tests
+        run: pytest tests/test_lambda_imports.py -v
+
+  deploy-infrastructure:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install CDK
+        run: npm install -g aws-cdk
+
+      - name: Install CDK project dependencies
+        run: cd iqg-cdk && npm ci
+
+      - name: Deploy CDK stack
+        run: cd iqg-cdk && cdk deploy --require-approval never --outputs-file ../cdk-outputs.json
+
+      - name: Upload CDK outputs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk-outputs
+          path: cdk-outputs.json
+
+  deploy-lambdas:
+    needs: deploy-infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download CDK outputs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cdk-outputs
+
+      - name: Deploy Lambda functions
+        run: |
+          deploy_lambda() {
+            local function_name=$1
+            local source_dir=$2
+            local zip_file="/tmp/${function_name}.zip"
+            cd lambda/${source_dir}
+            zip -r ${zip_file} .
+            cd -
+            aws lambda update-function-code \
+              --function-name ${function_name} \
+              --zip-file fileb://${zip_file}
+          }
+
+          deploy_lambda iqg-quote-worker quote_worker
+          deploy_lambda iqg-chat-conversation chat_conversation
+          deploy_lambda iqg-authorizer authorizer
+          deploy_lambda iqg-get-quote get_quote
+          deploy_lambda iqg-persist-selection persist_selection
+          deploy_lambda iqg-get-my-quotes get_my_quotes
+          deploy_lambda iqg-ws-connect ws_connect
+          deploy_lambda iqg-ws-disconnect ws_disconnect
+          deploy_lambda iqg-ws-chat ws_chat
+          deploy_lambda iqg-ws-authorizer ws_authorizer
+
+      - name: Ensure correct Bedrock model ID for AI Lambdas
+        run: |
+          for fn in iqg-quote-worker iqg-chat-conversation iqg-ws-chat; do
+            aws lambda update-function-configuration \
+              --function-name ${fn} \
+              --region ${{ secrets.AWS_REGION }} \
+              --environment "Variables={$(aws lambda get-function-configuration \
+                --function-name ${fn} \
+                --region ${{ secrets.AWS_REGION }} \
+                --query 'Environment.Variables' \
+                --output json | python3 -c "
+import sys, json
+env = json.load(sys.stdin)
+env['BEDROCK_MODEL_ID'] = 'us.anthropic.claude-sonnet-4-6'
+print(','.join(f\"{k}={v}\" for k,v in env.items()))
+")}" --query "FunctionName" --output text
+          done
+
+  deploy-frontend:
+    needs: deploy-infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download CDK outputs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cdk-outputs
+
+      - name: Build frontend
+        run: cd frontend && npm ci && npm run build
+
+      - name: Sync to S3
+        run: aws s3 sync frontend/dist s3://iqg-spa-867344470917-us-east-1 --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id E2V6T4NKA8DW2 \
+            --paths "/*"
