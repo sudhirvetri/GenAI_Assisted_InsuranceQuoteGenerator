@@ -1,0 +1,6 @@
+fastapi==0.111.*
+uvicorn[standard]==0.30.*
+gunicorn==22.*
+mangum==0.17.*
+pydantic[email]==2.*
+boto3==1.*

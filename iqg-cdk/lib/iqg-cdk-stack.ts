@@ -18,6 +18,10 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
+import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import * as path from 'path';
 
 export class IqgCdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -401,10 +405,6 @@ export class IqgCdkStack extends Stack {
 
     const quotes = v1.addResource('quotes');
     const quotesSubmit = quotes.addResource('submit');
-    quotesSubmit.addMethod('POST', new apigateway.LambdaIntegration(ingestionApiFn), {
-      authorizer: tokenAuthorizer,
-      authorizationType: apigateway.AuthorizationType.CUSTOM,
-    });
 
     const quotesById = quotes.addResource('{transactionId}');
     quotesById.addMethod('GET', new apigateway.LambdaIntegration(getQuoteFn), {
@@ -419,10 +419,6 @@ export class IqgCdkStack extends Stack {
     });
 
     const selections = v1.addResource('selections');
-    selections.addMethod('POST', new apigateway.LambdaIntegration(persistSelectionFn), {
-      authorizer: tokenAuthorizer,
-      authorizationType: apigateway.AuthorizationType.CUSTOM,
-    });
 
     const myQuotes = v1.addResource('my-quotes');
     myQuotes.addMethod('GET', new apigateway.LambdaIntegration(getMyQuotesFn), {
@@ -434,9 +430,170 @@ export class IqgCdkStack extends Stack {
     healthz.addMethod('GET', new apigateway.LambdaIntegration(getQuoteFn));
 
     // ------------------------------------------------------------------
+    // 9a. ECS FARGATE — Ingestion API
+    // ------------------------------------------------------------------
+
+    // IAM role for ECS tasks
+    const ecsTaskRole = new iam.Role(this, 'IqgEcsTaskRole', {
+      roleName: 'iqg-ecs-ingestion-task-role',
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+    });
+    // Same permissions as the ingestion Lambda
+    ecsTaskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['rds-data:ExecuteStatement', 'rds-data:BatchExecuteStatement'],
+      resources: [auroraCluster.clusterArn],
+    }));
+    ecsTaskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['secretsmanager:GetSecretValue'],
+      resources: [auroraSecret.secretArn],
+    }));
+    ecsTaskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['sqs:SendMessage', 'sqs:GetQueueAttributes'],
+      resources: [quoteJobsQueue.queueArn],
+    }));
+    ecsTaskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DescribeTable'],
+      resources: [idempotencyTable.tableArn, quoteResultsTable.tableArn],
+    }));
+    ecsTaskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
+      resources: ['*'],
+    }));
+
+    const ecsExecutionRole = new iam.Role(this, 'IqgEcsExecutionRole', {
+      roleName: 'iqg-ecs-ingestion-execution-role',
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy'),
+      ],
+    });
+
+    // Build Docker image and push to ECR
+    const ingestionImage = new ecrAssets.DockerImageAsset(this, 'IngestionApiImage', {
+      directory: path.join(__dirname, '../../ingestion-api'),
+      platform: ecrAssets.Platform.LINUX_AMD64,
+    });
+    ingestionImage.repository.grantPull(ecsExecutionRole);
+
+    // ECS Cluster
+    const ecsCluster = new ecs.Cluster(this, 'IqgEcsCluster', {
+      vpc,
+      clusterName: 'iqg-ecs-cluster',
+      containerInsights: true,
+    });
+
+    // Task definition
+    const taskDef = new ecs.FargateTaskDefinition(this, 'IqgIngestionTaskDef', {
+      family: 'iqg-ingestion-api',
+      cpu: 1024,
+      memoryLimitMiB: 2048,
+      taskRole: ecsTaskRole,
+      executionRole: ecsExecutionRole,
+    });
+
+    taskDef.addContainer('ingestion-api', {
+      image: ecs.ContainerImage.fromDockerImageAsset(ingestionImage),
+      containerName: 'ingestion-api',
+      portMappings: [{ containerPort: 8080 }],
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'iqg-ingestion-api' }),
+      environment: {
+        REGION:               'us-east-1',
+        DB_CLUSTER_ARN:       auroraCluster.clusterArn,
+        DB_SECRET_ARN:        auroraSecret.secretArn,
+        DB_NAME_TXN:          'txndb',
+        DB_NAME_PLAN:         'plandb',
+        QUOTE_JOBS_QUEUE_URL: quoteJobsQueue.queueUrl,
+        QUOTE_RESULTS_TABLE:  quoteResultsTable.tableName,
+        IDEMPOTENCY_TABLE:    idempotencyTable.tableName,
+      },
+      healthCheck: {
+        command: ['CMD-SHELL',
+          'python -c "import urllib.request; urllib.request.urlopen(\'http://localhost:8080/v1/healthz\')" || exit 1'],
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        retries: 3,
+        startPeriod: Duration.seconds(15),
+      },
+    });
+
+    // Security groups
+    const albSg = new ec2.SecurityGroup(this, 'IqgAlbSg', {
+      vpc,
+      securityGroupName: 'iqg-alb-sg',
+      description: 'IQG ALB inbound HTTP',
+      allowAllOutbound: false,
+    });
+    albSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80), 'HTTP from internet');
+    albSg.addEgressRule(ec2.Peer.ipv4('172.31.0.0/16'), ec2.Port.tcp(8080), 'To ECS tasks');
+
+    const ecsSg = new ec2.SecurityGroup(this, 'IqgEcsSg', {
+      vpc,
+      securityGroupName: 'iqg-ecs-sg',
+      description: 'IQG ECS tasks inbound from ALB',
+      allowAllOutbound: true,
+    });
+    ecsSg.addIngressRule(albSg, ec2.Port.tcp(8080), 'From ALB');
+
+    // Also allow Aurora to accept connections from ECS tasks
+    auroraSg.addIngressRule(ecsSg, ec2.Port.tcp(5432), 'PostgreSQL from ECS tasks');
+
+    // ALB — HTTP only (no ACM cert needed in lab environment)
+    const alb = new elbv2.ApplicationLoadBalancer(this, 'IqgAlb', {
+      vpc,
+      internetFacing: true,
+      loadBalancerName: 'iqg-alb',
+      securityGroup: albSg,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+    });
+
+    const targetGroup = new elbv2.ApplicationTargetGroup(this, 'IqgAlbTg', {
+      vpc,
+      port: 8080,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targetType: elbv2.TargetType.IP,
+      targetGroupName: 'iqg-alb-tg',
+      healthCheck: {
+        path: '/v1/healthz',
+        port: '8080',
+        protocol: elbv2.Protocol.HTTP,
+        healthyHttpCodes: '200',
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        healthyThresholdCount: 2,
+        unhealthyThresholdCount: 3,
+      },
+      deregistrationDelay: Duration.seconds(30),
+    });
+
+    alb.addListener('IqgAlbListener', {
+      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      defaultAction: elbv2.ListenerAction.forward([targetGroup]),
+    });
+
+    // Fargate service — minimum 1 task in lab (keep costs low)
+    const fargateService = new ecs.FargateService(this, 'IqgIngestionService', {
+      cluster: ecsCluster,
+      taskDefinition: taskDef,
+      serviceName: 'iqg-ingestion-api',
+      desiredCount: 1,
+      assignPublicIp: true,   // public IP needed since using default VPC (no NAT)
+      securityGroups: [ecsSg],
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      enableExecuteCommand: true,
+      circuitBreaker: { rollback: true },
+    });
+
+    fargateService.attachToApplicationTargetGroup(targetGroup);
+
+    // ------------------------------------------------------------------
     // 9. CLOUDFORMATION OUTPUTS
     // ------------------------------------------------------------------
     new CfnOutput(this, 'ApiUrl', { value: api.url });
+    new CfnOutput(this, 'AlbUrl', {
+      value: `http://${alb.loadBalancerDnsName}`,
+      description: 'ALB URL for POST /v1/quotes/submit and POST /v1/selections',
+    });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new CfnOutput(this, 'CognitoDomain', {

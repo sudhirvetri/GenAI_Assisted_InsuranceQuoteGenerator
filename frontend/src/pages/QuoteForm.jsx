@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 
-const API_BASE = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
+// After ECS migration, /quotes/submit goes to ALB; other routes stay on API Gateway
+const API_BASE_ALB = 'http://REPLACE_WITH_ALB_DNS_AFTER_DEPLOY'
+const API_BASE     = 'https://rzxm5finik.execute-api.us-east-1.amazonaws.com/v1'
 
 const SUM_INSURED_OPTIONS = [
   { label: '₹3,00,000', value: 300000 },
@@ -129,7 +131,7 @@ export default function QuoteForm() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/quotes/submit`, {
+      const res = await fetch(`${API_BASE_ALB}/v1/quotes/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
