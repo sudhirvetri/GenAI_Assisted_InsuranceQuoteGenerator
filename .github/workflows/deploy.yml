@@ -100,21 +100,27 @@ jobs:
 
       - name: Ensure correct Bedrock model ID for AI Lambdas
         run: |
-          for fn in iqg-quote-worker iqg-chat-conversation iqg-ws-chat; do
-            aws lambda update-function-configuration \
-              --function-name ${fn} \
-              --region ${{ secrets.AWS_REGION }} \
-              --environment "Variables={$(aws lambda get-function-configuration \
-                --function-name ${fn} \
-                --region ${{ secrets.AWS_REGION }} \
-                --query 'Environment.Variables' \
-                --output json | python3 -c "
-import sys, json
-env = json.load(sys.stdin)
-env['BEDROCK_MODEL_ID'] = 'us.anthropic.claude-sonnet-4-6'
-print(','.join(f\"{k}={v}\" for k,v in env.items()))
-")}" --query "FunctionName" --output text
-          done
+          python3 << 'EOF'
+          import boto3, json, os
+
+          region = os.environ.get("AWS_REGION", "us-east-1")
+          client = boto3.client("lambda", region_name=region)
+
+          for fn in ["iqg-quote-worker", "iqg-chat-conversation", "iqg-ws-chat"]:
+              try:
+                  config = client.get_function_configuration(FunctionName=fn)
+                  env_vars = config.get("Environment", {}).get("Variables", {})
+                  env_vars["BEDROCK_MODEL_ID"] = "us.anthropic.claude-sonnet-4-6"
+                  client.update_function_configuration(
+                      FunctionName=fn,
+                      Environment={"Variables": env_vars}
+                  )
+                  print(f"Updated {fn}")
+              except Exception as e:
+                  print(f"Failed {fn}: {e}")
+          EOF
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
 
   deploy-frontend:
     needs: deploy-infrastructure
