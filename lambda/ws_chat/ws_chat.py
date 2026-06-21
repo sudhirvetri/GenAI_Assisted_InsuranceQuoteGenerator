@@ -27,6 +27,7 @@ results_table = dynamodb.Table(QUOTE_RESULTS_TABLE)
 chat_table = dynamodb.Table(CHAT_HISTORY_TABLE)
 connections_table = dynamodb.Table(WS_CONNECTIONS_TABLE)
 
+MAX_TOKENS = int(os.environ.get("CHAT_MAX_TOKENS", "1000"))
 MAX_MESSAGE_LEN = 1000
 HISTORY_LIMIT = 10
 CHAT_TTL_SECONDS = 2592000  # 30 days
@@ -163,7 +164,7 @@ def handler(event, context):
             modelId=BEDROCK_MODEL_ID,
             body=json.dumps({
                 "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 500,
+                "max_tokens": MAX_TOKENS,
                 "system": system_prompt,
                 "messages": messages,
             }),

@@ -55,6 +55,11 @@ export default function Landing() {
               </div>
               <a
                 href={GOOGLE_LOGIN_URL}
+                onClick={(e) =>
+                {
+                  e.preventDefault()
+                  window.location.href = GOOGLE_LOGIN_URL
+                }}
                 className="flex items-center justify-center gap-3 w-full bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all shadow-sm"
               >
                 <svg width="20" height="20" viewBox="0 0 48 48">

@@ -54,7 +54,7 @@ export function WebSocketProvider({ children }) {
     }
 
     // Open WebSocket with JWT in the protocol header
-    const ws = new WebSocket(WS_URL, ['bearer.' + token])
+    const ws = new WebSocket(`${WS_URL}?token=${token}`)
     wsRef.current = ws
 
     ws.onopen = () => {

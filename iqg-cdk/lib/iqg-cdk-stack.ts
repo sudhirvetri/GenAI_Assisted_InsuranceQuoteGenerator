@@ -314,7 +314,8 @@ export class IqgCdkStack extends Stack {
       WS_CONNECTIONS_TABLE: wsConnectionsTable.tableName,
       IDEMPOTENCY_TABLE: idempotencyTable.tableName,
       AUDIT_BUCKET: auditBucket.bucketName,
-      BEDROCK_MODEL_ID: 'anthropic.claude-sonnet-4-6',
+      BEDROCK_MODEL_ID: 'us.anthropic.claude-sonnet-4-6',
+      CHAT_MAX_TOKENS: '1000',
       USER_POOL_ID: userPool.userPoolId,
       USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
     };
@@ -417,6 +418,7 @@ export class IqgCdkStack extends Stack {
           'Authorization',
           'X-Correlation-Id',
           'Idempotency-Key',
+          'X-Connection-Id',
         ],
       },
     });
@@ -550,7 +552,7 @@ export class IqgCdkStack extends Stack {
       apiId: wsApi.ref,
       authorizerType: 'REQUEST',
       authorizerUri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${wsAuthorizerFn.functionArn}/invocations`,
-      identitySource: ['route.request.header.Authorization', 'route.request.querystring.token'],
+      identitySource: ['route.request.querystring.token'],
       name: 'iqg-ws-authorizer',
     });
 
