@@ -22,6 +22,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecrAssets from 'aws-cdk-lib/aws-ecr-assets';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as path from 'path';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 
 export class IqgCdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -172,6 +173,22 @@ export class IqgCdkStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
+    // Google Identity Provider — credentials from Secrets Manager
+    const googleOauthSecret = secretsmanager.Secret.fromSecretNameV2(
+      this, 'GoogleOAuthSecret', 'iqg-google-oauth'
+    );
+    const googleIdp = new cognito.UserPoolIdentityProviderGoogle(this, 'GoogleIdp', {
+      userPool,
+      clientId: googleOauthSecret.secretValueFromJson('clientId').unsafeUnwrap(),
+      clientSecretValue: googleOauthSecret.secretValueFromJson('clientSecret'),
+      scopes: ['email', 'profile', 'openid'],
+      attributeMapping: {
+        email: cognito.ProviderAttribute.GOOGLE_EMAIL,
+        givenName: cognito.ProviderAttribute.GOOGLE_GIVEN_NAME,
+        familyName: cognito.ProviderAttribute.GOOGLE_FAMILY_NAME,
+      },
+    });
+
     const userPoolClient = new cognito.UserPoolClient(this, 'IqgUserPoolClient', {
       userPool,
       userPoolClientName: 'iqg-web-client',
@@ -180,6 +197,10 @@ export class IqgCdkStack extends Stack {
         userPassword: true,
         userSrp: true,
       },
+      supportedIdentityProviders: [
+        cognito.UserPoolClientIdentityProvider.COGNITO,
+        cognito.UserPoolClientIdentityProvider.GOOGLE,   // ← add this
+      ],
       oAuth: {
         flows: {
           implicitCodeGrant: true,
@@ -188,10 +209,12 @@ export class IqgCdkStack extends Stack {
         callbackUrls: [
           'http://localhost:5173/callback',
           'https://localhost:5173/callback',
+          'https://dtqht50eixzia.cloudfront.net/callback',  // ← add this
         ],
         logoutUrls: [
           'http://localhost:5173',
           'https://localhost:5173',
+          'https://dtqht50eixzia.cloudfront.net',           // ← add this
         ],
         scopes: [
           cognito.OAuthScope.EMAIL,
@@ -200,6 +223,9 @@ export class IqgCdkStack extends Stack {
         ],
       },
     });
+
+    // Ensure Google IdP is created before the client
+    userPoolClient.node.addDependency(googleIdp);
 
     new cognito.UserPoolDomain(this, 'IqgUserPoolDomain', {
       userPool,
@@ -511,14 +537,14 @@ export class IqgCdkStack extends Stack {
       portMappings: [{ containerPort: 8080 }],
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'iqg-ingestion-api' }),
       environment: {
-        REGION:               'us-east-1',
-        DB_CLUSTER_ARN:       auroraCluster.clusterArn,
-        DB_SECRET_ARN:        auroraSecret.secretArn,
-        DB_NAME_TXN:          'txndb',
-        DB_NAME_PLAN:         'plandb',
+        REGION: 'us-east-1',
+        DB_CLUSTER_ARN: auroraCluster.clusterArn,
+        DB_SECRET_ARN: auroraSecret.secretArn,
+        DB_NAME_TXN: 'txndb',
+        DB_NAME_PLAN: 'plandb',
         QUOTE_JOBS_QUEUE_URL: quoteJobsQueue.queueUrl,
-        QUOTE_RESULTS_TABLE:  quoteResultsTable.tableName,
-        IDEMPOTENCY_TABLE:    idempotencyTable.tableName,
+        QUOTE_RESULTS_TABLE: quoteResultsTable.tableName,
+        IDEMPOTENCY_TABLE: idempotencyTable.tableName,
       },
       healthCheck: {
         command: ['CMD-SHELL',
