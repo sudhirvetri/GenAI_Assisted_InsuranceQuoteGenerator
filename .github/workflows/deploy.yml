@@ -55,6 +55,16 @@ jobs:
           name: cdk-outputs
           path: cdk-outputs.json
 
+      - name: Force ECS service to use latest image
+        run: |
+          aws ecs update-service \
+            --cluster iqg-ecs-cluster \
+            --service iqg-ingestion-api \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }} \
+            --query "service.serviceName" \
+            --output text
+
   deploy-lambdas:
     needs: deploy-infrastructure
     runs-on: ubuntu-latest
