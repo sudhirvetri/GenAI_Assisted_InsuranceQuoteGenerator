@@ -777,6 +777,23 @@ export class IqgCdkStack extends Stack {
 
     fargateService.attachToApplicationTargetGroup(targetGroup);
 
+    // ECS Auto-scaling (LLD §4.6, NFR-08)
+    const scaling = fargateService.autoScaleTaskCount({
+      minCapacity: 1,   // 1 in lab to save cost; 2 in prod per LLD
+      maxCapacity: 10,
+    });
+    scaling.scaleOnRequestCount('ScaleOnRequests', {
+      requestsPerTarget: 50,
+      targetGroup: targetGroup,
+      scaleInCooldown: Duration.seconds(60),
+      scaleOutCooldown: Duration.seconds(30),
+    });
+    scaling.scaleOnCpuUtilization('ScaleOnCpu', {
+      targetUtilizationPercent: 70,
+      scaleInCooldown: Duration.seconds(60),
+      scaleOutCooldown: Duration.seconds(30),
+    });
+
     // ------------------------------------------------------------------
     // 9. CLOUDFORMATION OUTPUTS
     // ------------------------------------------------------------------
